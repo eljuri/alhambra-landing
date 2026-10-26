@@ -12,7 +12,11 @@
   const menu = document.getElementById('nav-menu');
   const toggleIcon = toggle.querySelector('i');
 
-  const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 24);
+  const onScroll = () => {
+    nav.classList.toggle('is-scrolled', window.scrollY > 24);
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    nav.style.setProperty('--scroll', max > 0 ? (window.scrollY / max).toFixed(4) : '0');
+  };
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
 
@@ -48,133 +52,344 @@
   }
 
   /* ------------------------------------------------------------------------
-     Próximos eventos con scroll
-     Solo quedan los eventos de hoy en adelante, del más cercano al más
-     lejano. Si ya pasaron todos, se muestran igual para no dejar la sección
-     vacía. La sección mide un tramo de pantalla por evento y el panel se
-     queda fijo: según cuánto se haya recorrido se activa uno u otro. Cada
-     evento recibe --local (0 a 1) para el parallax de su foto y la barra.
-     Con movimiento reducido (o un solo evento) quedan apilados.
+     Agenda de eventos
+     Primero los próximos (del más cercano al más lejano) y después los que
+     ya pasaron, marcados como «Finalizado». Si no queda ninguno por venir,
+     el título cambia a «Eventos recientes». En escritorio se muestra un
+     evento a la vez con su afiche completo y una línea de tiempo para
+     saltar entre ellos; avanza solo mientras la agenda está en pantalla.
      ------------------------------------------------------------------------ */
 
-  const eventsScroll = document.querySelector('[data-events]');
+  const agenda = document.querySelector('[data-agenda]');
 
-  if (eventsScroll) {
-    const progress = eventsScroll.querySelector('.events-progress');
-    const list = progress.querySelector('.events-progress__list');
-    const countNow = progress.querySelector('.events-progress__count b');
-    const countAll = progress.querySelector('.events-progress__count span');
-
-    const today = new Date();
+  if (agenda) {
+    const section = agenda.closest('section');
+    const list = agenda.querySelector('.agenda__list');
+    const DAY = 86400000;
+    const now = new Date();
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
 
-    let events = Array.from(eventsScroll.querySelectorAll('.event'), (el) => ({
-      el,
-      date: new Date(`${el.dataset.date}T00:00`),
-    })).sort((a, b) => a.date - b.date);
+    const parse = (value) => new Date(value.includes('T') ? value : `${value}T00:00`);
+    const all = Array.from(list.children, (el) => ({ el, date: parse(el.dataset.date) }));
+    const upcoming = all.filter((s) => s.date >= today).sort((a, b) => a.date - b.date);
+    const past = all.filter((s) => s.date < today).sort((a, b) => b.date - a.date);
+    const slots = [...upcoming, ...past];
 
-    const upcoming = events.filter((ev) => ev.date >= today);
-    if (upcoming.length) {
-      events.forEach((ev) => { if (!upcoming.includes(ev)) ev.el.remove(); });
-      events = upcoming;
+    const statusOf = (date) => {
+      const day = new Date(date);
+      day.setHours(0, 0, 0, 0);
+      const diff = Math.round((day - today) / DAY);
+      if (diff < 0) return 'Finalizado';
+      if (diff === 0) return 'Hoy';
+      if (diff === 1) return 'Mañana';
+      return `En ${diff} días`;
+    };
+
+    slots.forEach((s) => {
+      list.append(s.el);
+      s.status = statusOf(s.date);
+      s.title = s.el.querySelector('.slot__title').textContent.trim();
+      s.el.classList.toggle('is-past', s.date < today);
+      s.el.classList.toggle('is-soon', s.date >= today && s.date - today < 8 * DAY);
+      s.el.querySelector('[data-status]').textContent = s.status;
+    });
+    // El carrusel móvil sigue «enganchado» al que era el primero; vuelve al inicio
+    list.scrollLeft = 0;
+
+    // Cuenta regresiva al siguiente evento que aún no empieza
+    const countdown = section.querySelector('[data-countdown]');
+    const next = upcoming.find((s) => s.date > now);
+    if (countdown && next) {
+      countdown.hidden = false;
+      countdown.querySelector('[data-countdown-name]').textContent = next.title;
+      const units = {};
+      countdown.querySelectorAll('[data-unit]').forEach((el) => { units[el.dataset.unit] = el; });
+
+      const render = () => {
+        const ms = Math.max(next.date - Date.now(), 0);
+        const values = {
+          d: Math.floor(ms / DAY),
+          h: Math.floor(ms / 3600000) % 24,
+          m: Math.floor(ms / 60000) % 60,
+          s: Math.floor(ms / 1000) % 60,
+        };
+        Object.entries(values).forEach(([key, value]) => {
+          const el = units[key];
+          const text = String(value).padStart(2, '0');
+          if (el.textContent === text) return;
+          el.textContent = text;
+          if (!reduceMotion.matches) {
+            el.animate(
+              [{ transform: 'translateY(-40%)', opacity: 0 }, { transform: 'none', opacity: 1 }],
+              { duration: 450, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+            );
+          }
+        });
+      };
+      render();
+      setInterval(render, 1000);
     }
-    // Respeta el orden cronológico también en el DOM (lo usa la vista apilada)
-    events.forEach((ev) => progress.before(ev.el));
 
-    const total = events.length;
+    // Escritorio: un «cine» con el evento activo y una línea de tiempo en
+    // orden cronológico. Se arma con el contenido de cada ítem; la lista
+    // queda para móvil (el CSS decide cuál se ve).
+    const chrono = [...all].sort((a, b) => a.date - b.date);
+    const total = chrono.length;
     const pad = (n) => String(n).padStart(2, '0');
-    countAll.textContent = pad(total);
 
-    const dots = events.map((ev, i) => {
-      const title = ev.el.querySelector('.event__title').textContent.trim();
-      const li = document.createElement('li');
-      const dot = document.createElement('button');
-      dot.type = 'button';
-      dot.className = 'events-progress__dot';
-      dot.setAttribute('aria-label', `${title}, ${ev.el.dataset.short}`);
-      dot.innerHTML =
-        '<span class="events-progress__bar"><span class="events-progress__fill"></span></span>' +
-        '<span class="events-progress__label" aria-hidden="true"><b></b></span>';
-      const label = dot.querySelector('.events-progress__label');
-      label.querySelector('b').textContent = ev.el.dataset.short;
-      label.append(title);
-      dot.addEventListener('click', () => goTo(i));
-      li.append(dot);
-      list.append(li);
-      return dot;
+    const cinema = document.createElement('div');
+    cinema.className = 'cinema';
+
+    const panels = chrono.map((s) => {
+      const panel = document.createElement('article');
+      panel.className = 'cinema__panel';
+      panel.classList.toggle('is-past', s.el.classList.contains('is-past'));
+      panel.classList.toggle('is-soon', s.el.classList.contains('is-soon'));
+      panel.setAttribute('aria-label', s.title);
+
+      const src = s.el.querySelector('.slot__img');
+      const glow = src.cloneNode();
+      glow.className = 'cinema__glow';
+      const media = document.createElement('div');
+      media.className = 'cinema__media';
+      const poster = src.cloneNode();
+      poster.className = 'cinema__poster';
+      poster.alt = s.title;
+      media.append(poster);
+
+      const date = document.createElement('p');
+      date.className = 'cinema__date';
+      const day = document.createElement('span');
+      day.className = 'cinema__day';
+      day.textContent = s.el.querySelector('.slot__day').textContent;
+      const month = document.createElement('span');
+      month.className = 'cinema__month';
+      month.textContent = `${s.el.querySelector('.slot__month').textContent} ${s.date.getFullYear()}`;
+      date.append(day, month);
+
+      const link = s.el.querySelector('.slot__link').cloneNode(true);
+      link.className = 'btn btn--light';
+      link.querySelector('i').className = 'ph ph-arrow-right';
+
+      const info = document.createElement('div');
+      info.className = 'cinema__info';
+      const parts = [date, ...Array.from(s.el.querySelector('.slot__info').children, (n) => n.cloneNode(true)), link];
+      parts.forEach((node, i) => {
+        node.removeAttribute('id');
+        const line = document.createElement('div');
+        line.className = 'cinema__line';
+        const lift = document.createElement('div');
+        lift.className = 'cinema__lift';
+        lift.style.setProperty('--d', String(i));
+        lift.append(node);
+        line.append(lift);
+        info.append(line);
+      });
+
+      panel.append(glow, info, media);
+      cinema.append(panel);
+      return panel;
     });
 
+    const timeline = document.createElement('div');
+    timeline.className = 'timeline';
+    timeline.innerHTML =
+      '<div class="timeline__nav">' +
+      '<button type="button" class="timeline__arrow" data-step="-1" aria-label="Evento anterior"><i class="ph ph-arrow-left" aria-hidden="true"></i></button>' +
+      '<p class="timeline__count" aria-hidden="true"><b></b> / <span></span></p>' +
+      '<button type="button" class="timeline__arrow" data-step="1" aria-label="Evento siguiente"><i class="ph ph-arrow-right" aria-hidden="true"></i></button>' +
+      '</div>' +
+      '<div class="timeline__track"><span class="timeline__line"><span class="timeline__fill"></span></span><ol class="timeline__stops"></ol></div>';
+
+    const track = timeline.querySelector('.timeline__track');
+    const stopsList = timeline.querySelector('.timeline__stops');
+    const countNow = timeline.querySelector('.timeline__count b');
+    timeline.querySelector('.timeline__count span').textContent = pad(total);
+    track.style.setProperty('--n', String(total));
+
+    const stops = chrono.map((s, i) => {
+      const li = document.createElement('li');
+      const stop = document.createElement('button');
+      stop.type = 'button';
+      stop.className = 'timeline__stop';
+      stop.classList.toggle('is-past', s.el.classList.contains('is-past'));
+      const when = `${s.el.querySelector('.slot__day').textContent} ${s.el.querySelector('.slot__month').textContent}`;
+      stop.setAttribute('aria-label', `${s.title}, ${when}`);
+      stop.innerHTML = '<span class="timeline__dot"></span><b class="timeline__when"></b><span class="timeline__name"></span>';
+      stop.querySelector('.timeline__when').textContent = when;
+      stop.querySelector('.timeline__name').textContent = s.title;
+      stop.addEventListener('click', () => select(i));
+      li.append(stop);
+      stopsList.append(li);
+      return stop;
+    });
+
+    // «Hoy» va entre el último evento pasado y el primero por venir
+    const passed = chrono.filter((s) => s.date < today).length;
+    const todayMark = document.createElement('span');
+    todayMark.className = 'timeline__today';
+    todayMark.textContent = 'Hoy';
+    const at = passed === 0 ? 'calc(50% / var(--n) - 32px)'
+      : passed === total ? 'calc(100% - 50% / var(--n) + 32px)'
+        : `${(passed / total) * 100}%`;
+    todayMark.style.setProperty('--today', at);
+    track.append(todayMark);
+
+    // «Ver todos los eventos» cierra la línea de tiempo, dentro del cine
+    const moreLink = section.querySelector('.events__more a');
+    if (moreLink) {
+      const more = document.createElement('div');
+      more.className = 'timeline__more';
+      const link = moreLink.cloneNode(true);
+      link.classList.replace('btn--dark', 'btn--light');
+      more.append(link);
+      timeline.append(more);
+    }
+
+    // La línea de tiempo va dentro del cine, sobre el mismo fondo
+    cinema.append(timeline);
+    agenda.prepend(cinema);
+    agenda.classList.add('is-enhanced');
+
+    const AUTO = 7000;
     let current = -1;
-    let pinned = false;
-    let ticking = false;
+    let elapsed = 0;
 
-    const show = (index) => {
-      if (index === current) return;
-      current = index;
-      events.forEach((ev, i) => {
-        const active = i === index;
-        ev.el.classList.toggle('is-active', active);
-        ev.el.inert = !active;
-        if (active) dots[i].setAttribute('aria-current', 'true');
-        else dots[i].removeAttribute('aria-current');
-      });
-      countNow.textContent = pad(index + 1);
+    const setFill = () => {
+      const p = total > 1 ? Math.min((current + elapsed / AUTO) / (total - 1), 1) : 1;
+      track.style.setProperty('--p', p.toFixed(4));
     };
 
-    // Recorrido de la sección: 0 cuando el panel se fija, 1 cuando se suelta
-    const range = () => {
-      const top = eventsScroll.getBoundingClientRect().top + window.scrollY;
-      return { top, length: eventsScroll.offsetHeight - window.innerHeight };
-    };
-
-    const goTo = (i) => {
-      const { top, length } = range();
-      // Un poco dentro del tramo para que no quede en el borde con el anterior
-      const behavior = reduceMotion.matches ? 'auto' : 'smooth';
-      window.scrollTo({ top: top + length * ((i + 0.15) / total), behavior });
-    };
-
-    const update = () => {
-      ticking = false;
-      if (!pinned) return;
-      const { top, length } = range();
-      const p = Math.min(Math.max((window.scrollY - top) / length, 0), 1);
-      const pos = p * total;
-      events.forEach((ev, i) => {
-        const local = Math.min(Math.max(pos - i, 0), 1);
-        ev.el.style.setProperty('--local', local.toFixed(4));
-        dots[i].style.setProperty('--local', local.toFixed(4));
-      });
-      show(Math.min(Math.floor(pos), total - 1));
-    };
-
-    const requestUpdate = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(update);
-    };
-
-    const setMode = () => {
-      pinned = total > 1 && !reduceMotion.matches;
-      eventsScroll.classList.toggle('is-pinned', pinned);
-      eventsScroll.style.setProperty('--count', total);
-      progress.hidden = !pinned;
-      if (pinned) {
-        current = -1;
-        update();
-      } else {
-        events.forEach((ev) => {
-          ev.el.classList.add('is-active');
-          ev.el.inert = false;
-          ev.el.style.removeProperty('--local');
+    const select = (index) => {
+      elapsed = 0;
+      if (index !== current) {
+        const prev = current;
+        current = index;
+        panels.forEach((panel, i) => {
+          panel.classList.toggle('is-active', i === index);
+          panel.classList.toggle('is-leaving', i === prev);
+          panel.inert = i !== index;
         });
+        stops.forEach((stop, i) => {
+          if (i === index) stop.setAttribute('aria-current', 'true');
+          else stop.removeAttribute('aria-current');
+        });
+        countNow.textContent = pad(index + 1);
       }
+      setFill();
     };
 
-    setMode();
-    reduceMotion.addEventListener('change', setMode);
-    window.addEventListener('scroll', requestUpdate, { passive: true });
-    window.addEventListener('resize', requestUpdate);
+    timeline.querySelectorAll('[data-step]').forEach((btn) => {
+      btn.addEventListener('click', () => select((current + Number(btn.dataset.step) + total) % total));
+    });
+    stopsList.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const index = (current + (e.key === 'ArrowRight' ? 1 : -1) + total) % total;
+      select(index);
+      stops[index].focus();
+    });
+
+    // Empieza en el próximo evento; si ya pasaron todos, en el más reciente
+    select(passed < total ? passed : total - 1);
+
+    // Avance automático mientras la agenda está en pantalla y nadie interactúa
+    const desktop = window.matchMedia('(min-width: 961px)');
+    let inView = false;
+    let paused = false;
+    let last = 0;
+    let raf = 0;
+    let restartSlide = () => {};
+
+    const canAuto = () => inView && !paused && desktop.matches && !reduceMotion.matches
+      && total > 1 && !document.hidden;
+
+    const loop = (t) => {
+      raf = 0;
+      if (!canAuto()) return;
+      if (last) elapsed += t - last;
+      last = t;
+      if (elapsed >= AUTO) select((current + 1) % total);
+      else setFill();
+      raf = requestAnimationFrame(loop);
+    };
+
+    const resume = () => {
+      if (raf || !canAuto()) return;
+      last = 0;
+      raf = requestAnimationFrame(loop);
+    };
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(([entry]) => {
+        inView = entry.isIntersecting;
+        resume();
+        restartSlide();
+      }, { threshold: 0.35 }).observe(agenda);
+    }
+    agenda.addEventListener('pointerenter', () => { paused = true; });
+    agenda.addEventListener('pointerleave', () => { paused = agenda.contains(document.activeElement); resume(); });
+    agenda.addEventListener('focusin', () => { paused = true; });
+    agenda.addEventListener('focusout', (e) => {
+      if (agenda.contains(e.relatedTarget)) return;
+      paused = agenda.matches(':hover');
+      resume();
+    });
+    document.addEventListener('visibilitychange', resume);
+    desktop.addEventListener('change', resume);
+
+    // El afiche y su fondo se desplazan en sentidos opuestos según el mouse
+    cinema.addEventListener('pointermove', (e) => {
+      const r = cinema.getBoundingClientRect();
+      cinema.style.setProperty('--mx', (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3));
+      cinema.style.setProperty('--my', (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3));
+    });
+    cinema.addEventListener('pointerleave', () => {
+      cinema.style.setProperty('--mx', '0');
+      cinema.style.setProperty('--my', '0');
+    });
+
+    // Móvil: puntos que siguen el carrusel
+    if (slots.length > 1) {
+      const dots = document.createElement('div');
+      dots.className = 'agenda__dots';
+      dots.setAttribute('aria-hidden', 'true');
+      slots.forEach(() => dots.append(document.createElement('span')));
+      list.after(dots);
+      const marks = Array.from(dots.children);
+      const sync = () => {
+        const step = slots[1].el.offsetLeft - slots[0].el.offsetLeft || 1;
+        const index = Math.min(Math.round(list.scrollLeft / step), marks.length - 1);
+        marks.forEach((m, i) => m.classList.toggle('is-on', i === index));
+      };
+      sync();
+      list.addEventListener('scroll', sync, { passive: true });
+    }
+
+    // Móvil: el carrusel también avanza solo; si alguien lo toca, el conteo vuelve a empezar
+    let timer = 0;
+    const canSlide = () => inView && !desktop.matches && !reduceMotion.matches
+      && slots.length > 1 && !document.hidden;
+
+    const slide = () => {
+      const step = slots[1].el.offsetLeft - slots[0].el.offsetLeft || 1;
+      const index = Math.round(list.scrollLeft / step);
+      const atEnd = index >= slots.length - 1
+        || list.scrollLeft + list.clientWidth >= list.scrollWidth - 2;
+      list.scrollTo({ left: atEnd ? 0 : (index + 1) * step, behavior: 'smooth' });
+    };
+
+    restartSlide = () => {
+      clearInterval(timer);
+      timer = canSlide() ? setInterval(slide, AUTO) : 0;
+    };
+
+    list.addEventListener('pointerdown', restartSlide, { passive: true });
+    list.addEventListener('touchstart', restartSlide, { passive: true });
+    document.addEventListener('visibilitychange', restartSlide);
+    desktop.addEventListener('change', restartSlide);
+    restartSlide();
   }
 
   /* ------------------------------------------------------------------------
@@ -213,8 +428,10 @@
         if (!entry.isIntersecting) return;
         const el = entry.target;
         el.classList.add('is-visible');
+        // En los encabezados escalonados la última transición es la del último hijo
+        const last = el.classList.contains('reveal--stagger') ? el.lastElementChild : el;
         el.addEventListener('transitionend', (ev) => {
-          if (ev.target === el && ev.propertyName === 'opacity') settle(el);
+          if (ev.target === last && ev.propertyName === 'opacity') settle(el);
         });
         io.unobserve(el);
       });
@@ -343,6 +560,118 @@
     window.addEventListener('scroll', kick, { passive: true });
     window.addEventListener('resize', kick);
     kick();
+  }
+
+  /* ------------------------------------------------------------------------
+     Cinta de categorías: corre sola hacia la izquierda a velocidad fija,
+     sin reaccionar al scroll. Solo se anima en pantalla.
+     ------------------------------------------------------------------------ */
+
+  const ribbon = document.querySelector('[data-ribbon]');
+
+  if (ribbon && !reduceMotion.matches && 'IntersectionObserver' in window) {
+    const base = Array.from(ribbon.children);
+    let period = 0;
+
+    const fill = () => {
+      ribbon.replaceChildren(...base);
+      for (let i = 0; i < 10 && ribbon.scrollWidth < window.innerWidth * 1.5; i++) {
+        base.forEach((node) => ribbon.append(node.cloneNode(true)));
+      }
+      const count = ribbon.children.length;
+      Array.from(ribbon.children).forEach((node) => ribbon.append(node.cloneNode(true)));
+      period = ribbon.children[count].offsetLeft - ribbon.children[0].offsetLeft;
+    };
+
+    let x = 0;
+    let spin = 0;
+    let visible = false;
+    let raf = 0;
+
+    const step = () => {
+      raf = 0;
+      if (!visible) return;
+      const speed = 0.8;
+      x -= speed;
+      if (period) {
+        if (x <= -period) x += period;
+        if (x > 0) x -= period;
+      }
+      spin += speed * 1.6;
+      ribbon.style.setProperty('--x', `${x.toFixed(2)}px`);
+      ribbon.style.setProperty('--spin', `${(spin % 360).toFixed(1)}deg`);
+      raf = requestAnimationFrame(step);
+    };
+
+    document.fonts.ready.then(fill);
+    fill();
+    let ribbonWidth = window.innerWidth;
+    window.addEventListener('resize', () => {
+      if (window.innerWidth === ribbonWidth) return;
+      ribbonWidth = window.innerWidth;
+      fill();
+    });
+
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (visible && !raf) raf = requestAnimationFrame(step);
+    }).observe(ribbon);
+  }
+
+  /* ------------------------------------------------------------------------
+     Solo con mouse y movimiento activo:
+     - Hero: el texto y el video siguen al mouse en sentidos opuestos.
+     - Descubre: las fotos se inclinan hacia el mouse con un brillo encima.
+     - [data-magnetic]: el elemento se acerca al cursor dentro de su zona.
+     ------------------------------------------------------------------------ */
+
+  const mouse = window.matchMedia('(hover: hover) and (pointer: fine)');
+
+  if (mouse.matches && !reduceMotion.matches) {
+    const heroFilm = document.querySelector('.hero--film');
+    if (heroFilm) {
+      heroFilm.addEventListener('pointermove', (e) => {
+        heroFilm.style.setProperty('--hx', ((e.clientX / window.innerWidth) * 2 - 1).toFixed(3));
+        heroFilm.style.setProperty('--hy', ((e.clientY / window.innerHeight) * 2 - 1).toFixed(3));
+      });
+      heroFilm.addEventListener('pointerleave', () => {
+        heroFilm.style.setProperty('--hx', '0');
+        heroFilm.style.setProperty('--hy', '0');
+      });
+    }
+
+    document.documentElement.classList.add('has-tilt');
+    document.querySelectorAll('.discover__frame').forEach((frame) => {
+      frame.addEventListener('pointermove', (e) => {
+        const r = frame.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width;
+        const py = (e.clientY - r.top) / r.height;
+        frame.classList.add('is-tilting');
+        frame.style.setProperty('--ry', `${((px - 0.5) * 7).toFixed(2)}deg`);
+        frame.style.setProperty('--rx', `${((0.5 - py) * 7).toFixed(2)}deg`);
+        frame.style.setProperty('--gx', `${(px * 100).toFixed(1)}%`);
+        frame.style.setProperty('--gy', `${(py * 100).toFixed(1)}%`);
+      });
+      frame.addEventListener('pointerleave', () => {
+        frame.classList.remove('is-tilting');
+        frame.style.setProperty('--rx', '0deg');
+        frame.style.setProperty('--ry', '0deg');
+      });
+    });
+
+    document.querySelectorAll('[data-magnetic]').forEach((el) => {
+      const zone = el.matches('a, button') ? el : el.closest('a, button') || el;
+      const clamp = (v) => Math.max(-12, Math.min(12, v));
+      zone.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--tx', `${clamp((e.clientX - (r.left + r.width / 2)) * 0.25).toFixed(1)}px`);
+        el.style.setProperty('--ty', `${clamp((e.clientY - (r.top + r.height / 2)) * 0.35).toFixed(1)}px`);
+      });
+      zone.addEventListener('pointerleave', () => {
+        el.style.setProperty('--tx', '0px');
+        el.style.setProperty('--ty', '0px');
+      });
+    });
   }
 
   /* ------------------------------------------------------------------------
