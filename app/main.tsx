@@ -10,7 +10,8 @@ import Discover from "../framer/Discover.tsx"
 import Subscribe from "../framer/Subscribe.tsx"
 import Logos from "../framer/Logos.tsx"
 import Footer from "../framer/Footer.tsx"
-import PageHero, { RESTAURANTS_HERO } from "../framer/PageHero.tsx"
+import PageHero from "../framer/PageHero.tsx"
+import RestaurantsHero from "../framer/RestaurantsHero.tsx"
 import Brands from "../framer/Brands.tsx"
 import Restaurants from "../framer/Restaurants.tsx"
 
@@ -44,7 +45,7 @@ const PAGES = {
         intro: false,
         body: (
             <>
-                <PageHero {...RESTAURANTS_HERO} />
+                <RestaurantsHero />
                 <Restaurants />
             </>
         ),
