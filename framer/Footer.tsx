@@ -12,7 +12,7 @@ const NOSOTROS = [
 const EXPLORAR = [
     { label: "Marcas", link: "/marcas" },
     { label: "Restaurantes", link: "/restaurantes" },
-    { label: "Eventos", link: "/#inicio" },
+    { label: "Eventos", link: "/eventos" },
     { label: "Blog", link: "/blog" },
 ]
 const HOURS = [

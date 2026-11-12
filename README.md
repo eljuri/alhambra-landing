@@ -22,9 +22,15 @@ igual en local (Vite) y en Framer (code components).
 | `/` | Nav, Hero, Ribbon, Events, Discover, Subscribe, Logos, Footer |
 | `/marcas` | Nav (sin animar entrada), PageHero, Brands, Footer |
 | `/restaurantes` | Nav (sin animar entrada), PageHero (valores de `RESTAURANTS_HERO`), Restaurants, Footer |
+| `/eventos` | Nav (sin animar entrada), EventsHero, EventsAgenda, Footer. `?evento=<slug>` abre el detalle de ese evento; `?hoy=AAAA-MM-DD` simula otra fecha para revisar la página |
+| `/salonauditorio` | Nav (sin animar entrada), VenueHero, VenueShift, VenueSpaces, VenueGallery, VenueFaq, VenueBooking, Footer |
 
 `Brands.tsx` y `Restaurants.tsx` solo traen datos; el buscador y los chips viven
 en `Directory.tsx`, que no es un componente sino código compartido.
+Igual con `Lightbox.tsx` (visor de fotos y planos de VenueGallery y VenueSpaces).
+
+Las fotos del Salón Auditorio se sirven desde framerusercontent.com (las mismas
+de alhambrashopping.com/salonauditorio); hay copia local en `imagenes/salon/`.
 
 La versión HTML original (antes de React) quedó en el historial de git, en el commit `c267f72`.
 

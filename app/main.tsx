@@ -14,6 +14,14 @@ import PageHero from "../framer/PageHero.tsx"
 import RestaurantsHero from "../framer/RestaurantsHero.tsx"
 import Brands from "../framer/Brands.tsx"
 import Restaurants from "../framer/Restaurants.tsx"
+import EventsHero from "../framer/EventsHero.tsx"
+import EventsAgenda from "../framer/EventsAgenda.tsx"
+import VenueHero from "../framer/VenueHero.tsx"
+import VenueShift from "../framer/VenueShift.tsx"
+import VenueSpaces from "../framer/VenueSpaces.tsx"
+import VenueGallery from "../framer/VenueGallery.tsx"
+import VenueFaq from "../framer/VenueFaq.tsx"
+import VenueBooking from "../framer/VenueBooking.tsx"
 
 const PAGES = {
     "/": {
@@ -47,6 +55,30 @@ const PAGES = {
             <>
                 <RestaurantsHero />
                 <Restaurants />
+            </>
+        ),
+    },
+    "/eventos": {
+        title: "Eventos · Alhambra Shopping",
+        intro: false,
+        body: (
+            <>
+                <EventsHero />
+                <EventsAgenda />
+            </>
+        ),
+    },
+    "/salonauditorio": {
+        title: "Salón Auditorio · Alhambra Shopping",
+        intro: false,
+        body: (
+            <>
+                <VenueHero />
+                <VenueShift />
+                <VenueSpaces />
+                <VenueGallery />
+                <VenueFaq />
+                <VenueBooking />
             </>
         ),
     },

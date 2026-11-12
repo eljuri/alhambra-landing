@@ -7,7 +7,7 @@ import { isCanvas } from "./Behaviors.tsx"
 const LINKS = [
     { label: "Marcas", link: "/marcas" },
     { label: "Restaurantes", link: "/restaurantes" },
-    { label: "Eventos", link: "/#inicio" },
+    { label: "Eventos", link: "/eventos" },
     { label: "Auditorio", link: "/salonauditorio" },
 ]
 

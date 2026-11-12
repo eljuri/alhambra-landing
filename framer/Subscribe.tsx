@@ -112,7 +112,7 @@ export default function Subscribe(props) {
         <div className={ROOT_CLASS} style={{ width: "100%" }} ref={root}>
             <section className="section subscribe" id="suscripcion" aria-labelledby="subscribe-title">
                 <div className="container">
-                    <header className={`discover__head${reveal} reveal--stagger`}>
+                    <header className={`discover__head discover__head--center${reveal} reveal--stagger`}>
                         <Split className="discover__title" id="subscribe-title" text={title} />
                         <p className="discover__sub">{sub}</p>
                         <p className="discover__lead">{lead}</p>

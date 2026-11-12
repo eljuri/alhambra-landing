@@ -8,10 +8,10 @@ import { useAlhambraStyles, IMG, src, ROOT_CLASS, reduceMotion } from "./Theme.t
 import { isCanvas, parseDate, monthShort } from "./Behaviors.tsx"
 
 const EVENTS = [
-    { date: "2026-02-13", tag: "Demostración", title: "Nuevo Alhambra 2", meta: "Viernes, 13 de febrero de 2026", imageUrl: IMG("bMHZY91kYoaBm3J81ZhOSSo4NZI.jpg"), linkLabel: "Más información", link: "/eventos", sponsors: "" },
-    { date: "2026-02-14", tag: "Taller", title: "Dilo con Flores", meta: "Sábado, 14 de febrero de 2026", imageUrl: IMG("Sy5Mex1hkXOH8fWgo3KqP5ywjg0.png"), linkLabel: "Más información", link: "/eventos", sponsors: "" },
-    { date: "2026-07-28T08:30", tag: "", title: "Mid Year Sale", meta: "Martes, 28 de julio de 2026 · 8H30", imageUrl: IMG("9ZYsigPSJhc23fVR91nZnD0Dtc.png"), linkLabel: "Regístrate", link: "/eventos", sponsors: "" },
-    { date: "2026-07-30T14:00", tag: "Fitness", title: "Feria Viva!", meta: "Jueves, 30 de julio de 2026 · 2PM", imageUrl: IMG("GDUyFdQmdNCJHE0E1d6iQbMpeBA.webp"), linkLabel: "Regístrate", link: "/eventos", sponsors: `${IMG("AzdMndHYKY3liFiLwpYJi9sBrKc.jpeg")}, ${IMG("04sPCICMpWpd5DB9cm1q846juno.png")}` },
+    { date: "2026-02-13", tag: "Demostración", title: "Nuevo Alhambra 2", meta: "Viernes, 13 de febrero de 2026", imageUrl: IMG("bMHZY91kYoaBm3J81ZhOSSo4NZI.jpg"), linkLabel: "Más información", link: "/eventos?evento=alhambra2", sponsors: "" },
+    { date: "2026-02-14", tag: "Taller", title: "Dilo con Flores", meta: "Sábado, 14 de febrero de 2026", imageUrl: IMG("Sy5Mex1hkXOH8fWgo3KqP5ywjg0.png"), linkLabel: "Más información", link: "/eventos?evento=dilo-con-flores", sponsors: "" },
+    { date: "2026-07-28T08:30", tag: "", title: "Mid Year Sale", meta: "Martes, 28 de julio de 2026 · 8H30", imageUrl: IMG("9ZYsigPSJhc23fVR91nZnD0Dtc.png"), linkLabel: "Regístrate", link: "/eventos?evento=strong-nation", sponsors: "" },
+    { date: "2026-07-30T14:00", tag: "Fitness", title: "Feria Viva!", meta: "Jueves, 30 de julio de 2026 · 2PM", imageUrl: IMG("GDUyFdQmdNCJHE0E1d6iQbMpeBA.webp"), linkLabel: "Regístrate", link: "/eventos?evento=feria-viva", sponsors: `${IMG("AzdMndHYKY3liFiLwpYJi9sBrKc.jpeg")}, ${IMG("04sPCICMpWpd5DB9cm1q846juno.png")}` },
 ]
 
 const DAY = 86400000
