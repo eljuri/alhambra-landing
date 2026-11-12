@@ -400,7 +400,7 @@ body.menu-open { overflow: hidden; }
 @keyframes word-in { to { transform: none; } }
 .js .hero--film .hero__lead { animation-delay: 0.85s; }
 
-/* Al hacer scroll (main.js pone --hero-p de 0 a 1): el video se acerca y
+/* Al hacer scroll (Hero.tsx pone --hero-p de 0 a 1): el video se acerca y
    baja más lento que la página; el texto se queda atrás y se desvanece */
 .hero--film .hero__video {
   scale: calc(1.04 + var(--hero-p, 0) * 0.12);
@@ -456,7 +456,7 @@ body.menu-open { overflow: hidden; }
   .hero__cue { display: none; }
 }
 
-/* Cinta de categorías entre el hero y la agenda. main.js la mueve con --x. */
+/* Cinta de categorías entre el hero y la agenda. Ribbon.tsx la mueve con --x. */
 .ribbon {
   overflow: hidden;
   padding-block: clamp(18px, 3vw, 32px);
@@ -687,7 +687,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
 
   /* El cine queda pegado a la cinta de categorías y a la sección de abajo.
      La cuenta regresiva flota sobre el cine y «Ver todos los eventos» va
-     dentro de la línea de tiempo (main.js), así que la sección es solo el cine. */
+     dentro de la línea de tiempo (Events.tsx), así que la sección es solo el cine. */
   .events:has(.agenda.is-enhanced) { padding-block: 0; }
   .events:has(.agenda.is-enhanced) > .container { position: relative; }
   .events:has(.agenda.is-enhanced) .events__head {
@@ -1004,7 +1004,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
   .countdown { width: 100%; }
 }
 
-/* Puntos del carrusel (main.js) */
+/* Puntos del carrusel (Events.tsx) */
 .agenda__dots { display: none; }
 @media (max-width: 960px) {
   .agenda__dots { display: flex; gap: 6px; margin-top: 8px; }
@@ -1068,7 +1068,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
   text-decoration: none;
 }
 .discover__item--band .discover__frame { min-height: 240px; }
-/* La foto es más alta que el marco para que el parallax (--py, main.js)
+/* La foto es más alta que el marco para que el parallax (--py, Discover.tsx)
    no deje bordes vacíos */
 .discover__item img {
   width: 100%;
@@ -1092,7 +1092,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
 /* El marco recorta, así que el contorno de foco va por dentro */
 .discover__frame:focus-visible { outline-color: var(--cream); outline-offset: -6px; border-radius: 0; }
 
-/* Cursor «Ver» sobre las fotos (main.js lo crea solo con mouse) */
+/* Cursor «Ver» sobre las fotos (Behaviors.tsx lo crea solo con mouse) */
 .has-cursor [data-cursor] { cursor: none; }
 .cursor {
   position: fixed;
@@ -1274,7 +1274,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
 .reveal--stagger > :nth-child(2) { --n: 1; }
 .reveal--stagger > :nth-child(3) { --n: 2; }
 .reveal--stagger > :nth-child(4) { --n: 3; }
-.js .reveal--stagger:not(.is-visible) > :not(.split) { opacity: 0; transform: translateY(14px); }
+.js .reveal.reveal--stagger:not(.is-visible) > :not(.split) { opacity: 0; transform: translateY(14px); }
 
 /* Títulos por palabras: cada palabra sube desde abajo de su máscara.
    El recorte es solo inferior para no cortar sombras ni acentos. */
@@ -1419,7 +1419,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
 }
 /* Margen en vez de gap: así la mitad del recorrido calza exacto con la copia */
 .marquee__track li { flex-shrink: 0; margin-inline-end: clamp(40px, 6vw, 88px); }
-/* Altura óptica: main.js fija --k según la proporción del logo, así uno
+/* Altura óptica: Logos.tsx fija --k según la proporción del logo, así uno
    ancho y uno cuadrado pesan parecido a la vista */
 .marquee__track img {
   height: calc(var(--logo-h, 64px) * var(--k, 0.6));
@@ -1433,7 +1433,7 @@ html:not(.js) .ribbon__track { animation: ribbon 40s linear infinite; }
 .marquee:hover img { opacity: 0.45; }
 .marquee__track li:hover img { opacity: 1; }
 
-/* Solo se anima cuando main.js ya duplicó los logos */
+/* Solo se anima cuando Logos.tsx ya duplicó los logos */
 .marquee.is-ready .marquee__track { animation: marquee var(--marquee-duration, 60s) linear infinite; }
 .marquee--reverse.is-ready .marquee__track { animation-direction: reverse; }
 .marquee:hover .marquee__track,
@@ -1542,12 +1542,12 @@ button.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--i
 }
 
 /* Tipo de comidas: cards cuadradas, 3 por fila y 1 en pantallas angostas */
-#restaurantes-grid {
+.grid--square {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
-#restaurantes-grid .card { aspect-ratio: 1; }
+.grid--square .card { aspect-ratio: 1; }
 @media (max-width: 800px) {
-  #restaurantes-grid { grid-template-columns: minmax(0, 1fr); }
+  .grid--square { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Tono al que se funde el degradado: el fondo de cada sección */
@@ -1949,7 +1949,7 @@ button.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--i
 .discover__body { transition: translate 0.6s var(--ease-out); }
 .discover__frame:hover .discover__body { translate: 0 -4px; }
 
-/* Botones magnéticos: main.js fija --tx/--ty */
+/* Botones magnéticos: Behaviors.tsx fija --tx/--ty */
 [data-magnetic] {
   translate: var(--tx, 0) var(--ty, 0);
   transition: translate 0.5s var(--ease-out), background-color 0.3s var(--ease), color 0.3s var(--ease), transform 0.3s var(--ease);

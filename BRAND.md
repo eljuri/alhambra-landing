@@ -1,6 +1,6 @@
 # Alhambra Shopping — Guía de marca de la landing
 
-Colores, tipografías y medidas que usa la landing (`index.html` + `styles.css`).
+Colores, tipografías y medidas que usa la landing (`framer/*.tsx` + `styles.css`).
 Las variables están definidas en `:root` de `styles.css`.
 
 ---
