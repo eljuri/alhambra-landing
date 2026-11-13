@@ -7,6 +7,9 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, IMG, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { isCanvas, parseDate } from "./Behaviors.tsx"
+import { Btn } from "./Button.tsx"
+import { Toggle } from "./Toggle.tsx"
+import { useCmsEvents } from "./EventsCms.tsx"
 
 const EVENTS = [
     {
@@ -154,6 +157,7 @@ function Countdown({ to, now }: { to: Date; now: Date }) {
 export default function EventsAgenda(props) {
     useAlhambraStyles()
     const { title, lead, emptyTitle, emptyText, emptyCta, emptyLink, registerNote, consent, msgMissing, msgOk, today: todayProp } = props
+    const events = useCmsEvents(props.events || []) as any[]
     const root = useRef<HTMLDivElement>(null)
     const dialog = useRef<HTMLDialogElement>(null)
     const form = useRef<HTMLFormElement>(null)
@@ -180,7 +184,7 @@ export default function EventsAgenda(props) {
 
     const all = useMemo(
         () =>
-            (props.events || []).map((e) => {
+            (events).map((e) => {
                 const when = parseDate(e.date)
                 const past = now ? when < today : false
                 return {
@@ -193,7 +197,7 @@ export default function EventsAgenda(props) {
                     sponsorList: String(e.sponsors || "").split(",").map((s) => s.trim()).filter(Boolean),
                 }
             }),
-        [props.events, dayKey]
+        [events, dayKey]
     )
     const upcoming = useMemo(() => all.filter((e) => !e.past).sort((a, b) => +a.when - +b.when), [all])
     const past = useMemo(() => all.filter((e) => e.past).sort((a, b) => +b.when - +a.when), [all])
@@ -266,12 +270,17 @@ export default function EventsAgenda(props) {
         setOpenSlug("")
     }
 
-    // Enlace directo: /eventos?evento=<slug>
+    // Enlace directo: /eventos?evento=<slug>. Se reintenta cuando llegan los
+    // eventos del CMS, pero solo se abre una vez.
+    const deepLinked = useRef(false)
     useEffect(() => {
-        if (isCanvas()) return
+        if (isCanvas() || deepLinked.current) return
         const slug = new URLSearchParams(location.search).get("evento")
-        if (slug && (props.events || []).some((e) => e.slug === slug)) openEvent(slug)
-    }, [])
+        if (slug && events.some((e) => e.slug === slug)) {
+            deepLinked.current = true
+            openEvent(slug)
+        }
+    }, [events])
 
     const share = async (ev: any) => {
         const url = eventUrl(ev.slug)
@@ -368,11 +377,9 @@ export default function EventsAgenda(props) {
                                     {now ? <Countdown to={next.when} now={now} /> : null}
                                     <div className="ev-actions">
                                         {next.register ? (
-                                            <button className="btn btn--dark" type="button" onClick={() => openEvent(next.slug, "registro")}>
-                                                Regístrate <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                                            </button>
+                                            <Btn variant="dark" onClick={() => openEvent(next.slug, "registro")}>Regístrate</Btn>
                                         ) : null}
-                                        <button className="btn btn--line" type="button" onClick={() => openEvent(next.slug)}>Ver detalles</button>
+                                        <Btn variant="line" icon="plus" onClick={() => openEvent(next.slug)}>Ver detalles</Btn>
                                         <button className="ev-icon-btn" type="button" onClick={() => downloadIcs(next, eventUrl(next.slug))} aria-label="Agregar al calendario" title="Agregar al calendario">
                                             <i className="ph ph-calendar-plus" aria-hidden="true"></i>
                                         </button>
@@ -386,9 +393,7 @@ export default function EventsAgenda(props) {
                                     <h2 className="ev-empty__title" id="ev-next-title">{emptyTitle}</h2>
                                     <p>{emptyText}</p>
                                 </div>
-                                <a className="btn btn--dark" href={emptyLink}>
-                                    {emptyCta} <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                                </a>
+                                <Btn variant="dark" href={emptyLink}>{emptyCta}</Btn>
                             </div>
                         )}
                     </div>
@@ -403,14 +408,17 @@ export default function EventsAgenda(props) {
                             <Split className="discover__title" id="ev-agenda-title" text={title} />
                             <p className="discover__lead">{lead}</p>
                         </header>
-                        <div className="venue-toggle venue-toggle--light" role="group" aria-label="Mostrar eventos">
-                            {(["proximos", "pasados", "todos"] as const).map((f) => (
-                                <button key={f} type="button" aria-pressed={filter === f} onClick={() => choose(f)}>
-                                    {f === "proximos" ? "Próximos" : f === "pasados" ? "Pasados" : "Todos"}
-                                    <span className="ev-count">{counts[f]}</span>
-                                </button>
-                            ))}
-                        </div>
+                        <Toggle
+                            variant="light"
+                            label="Mostrar eventos"
+                            value={filter}
+                            onChange={choose}
+                            options={[
+                                { value: "proximos", label: "Próximos", count: counts.proximos },
+                                { value: "pasados", label: "Pasados", count: counts.pasados },
+                                { value: "todos", label: "Todos", count: counts.todos },
+                            ]}
+                        />
                     </div>
 
                     {groups.length ? (
@@ -479,18 +487,12 @@ export default function EventsAgenda(props) {
                                     ) : null}
                                     <div className="ev-actions">
                                         {active.register && !active.past ? (
-                                            <button className="btn btn--dark" type="button" onClick={() => { setView("registro"); setNotice({ text: "", ok: false }) }}>
-                                                Regístrate <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                                            </button>
+                                            <Btn variant="dark" onClick={() => { setView("registro"); setNotice({ text: "", ok: false }) }}>Regístrate</Btn>
                                         ) : null}
                                         {!active.past ? (
-                                            <button className="btn btn--line" type="button" onClick={() => downloadIcs(active, eventUrl(active.slug))}>
-                                                <i className="ph ph-calendar-plus" aria-hidden="true"></i> Agregar al calendario
-                                            </button>
+                                            <Btn variant="line" icon="calendar-plus" onClick={() => downloadIcs(active, eventUrl(active.slug))}>Agregar al calendario</Btn>
                                         ) : null}
-                                        <button className="btn btn--line" type="button" onClick={() => share(active)}>
-                                            <i className="ph ph-share-network" aria-hidden="true"></i> Compartir
-                                        </button>
+                                        <Btn variant="line" icon="share-network" onClick={() => share(active)}>Compartir</Btn>
                                     </div>
                                 </>
                             ) : (
@@ -508,9 +510,7 @@ export default function EventsAgenda(props) {
                                     </label>
                                     <p className={`ev-form__status${notice.ok ? " is-ok" : ""}`} role="status" aria-live="polite">{notice.text}</p>
                                     <div className="ev-actions">
-                                        <button className="form__submit" type="submit">
-                                            Enviar registro <span><i className="ph ph-arrow-right" aria-hidden="true"></i></span>
-                                        </button>
+                                        <Btn variant="dark" type="submit" block>Enviar registro</Btn>
                                         <button className="ev-back" type="button" onClick={() => setView("detalle")}>
                                             <i className="ph ph-arrow-left" aria-hidden="true"></i> Volver al detalle
                                         </button>

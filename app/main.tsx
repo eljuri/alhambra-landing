@@ -87,6 +87,9 @@ const PAGES = {
 const page = PAGES[location.pathname.replace(/\/$/, "") || "/"] ?? PAGES["/"]
 document.title = page.title
 
+// Sin CMS en local: los puentes no esperan a la Collection List (ver CmsStore.tsx)
+;(window as any).__ALHAMBRA_LOCAL__ = true
+
 createRoot(document.getElementById("root")!).render(
     <StrictMode>
         <Nav animateIntro={page.intro} />

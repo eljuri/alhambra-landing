@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { Btn } from "./Button.tsx"
 
 const emailShape = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -127,9 +128,7 @@ export default function Subscribe(props) {
                             {field(FIELDS[4])}
                         </div>
                         <div className="form__foot field--wide">
-                            <button className="form__submit" type="submit">
-                                {submitLabel} <span><i className="ph ph-arrow-right" aria-hidden="true"></i></span>
-                            </button>
+                            <Btn variant="dark" type="submit" block>{submitLabel}</Btn>
                         </div>
                     </form>
                 </div>

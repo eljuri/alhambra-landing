@@ -6,6 +6,7 @@ import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, IMG, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { useCursor, isCanvas } from "./Behaviors.tsx"
 import { useLightbox } from "./Lightbox.tsx"
+import { Toggle } from "./Toggle.tsx"
 
 const SPACES = [
     { name: "Auditorio", figure: "240", unit: "butacas", text: "Proyector láser Ultra HD 4K, pantalla de 280 pulgadas y sonido surround. Con sillas más delgadas recibe hasta 600 personas.", imageUrl: IMG("GkhOtqCoHc8Qik1hUb2vwTXDyQQ.jpg"), alt: "Auditorio con filas de butacas frente al escenario" },
@@ -94,11 +95,13 @@ export default function VenueSpaces(props) {
                                 <h3 className="plans__title">{plansTitle}</h3>
                                 <p className="plans__text">{plansText}</p>
                             </div>
-                            <div className="venue-toggle venue-toggle--light" role="group" aria-label="Plano">
-                                {(plans || []).map((p, i) => (
-                                    <button key={i} type="button" aria-pressed={i === plan} onClick={() => setPlan(i)}>{p.name}</button>
-                                ))}
-                            </div>
+                            <Toggle
+                                variant="light"
+                                label="Plano"
+                                value={plan}
+                                onChange={setPlan}
+                                options={(plans || []).map((p, i) => ({ value: i, label: p.name }))}
+                            />
                         </div>
                         <button className="plans__frame" type="button" data-cursor="Ampliar" onClick={() => lightbox.open(plan)} aria-label={`Ampliar plano: ${plans?.[plan]?.name}`}>
                             {(plans || []).map((p, i) => (

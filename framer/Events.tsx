@@ -1,21 +1,25 @@
-// Alhambra Shopping — agenda de eventos
-// Escritorio: «cine» con el evento activo y línea de tiempo cronológica que
-// avanza sola. Móvil: carrusel horizontal con puntos. Cuenta regresiva al
-// próximo evento. Portado de main.js.
+// Alhambra Shopping — agenda de eventos (inicio)
+// Composición centrada, como el resto de la página: encabezado centrado, un
+// evento destacado (el próximo o, si no hay, el último) con su foto a lo
+// ancho con el texto centrado encima (como el hero), y una fila de tarjetas
+// con los demás.
+// Botones como el de «Mantente conectado» y cursor «Ver» como en «Descubre».
 import { useEffect, useMemo, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
-import { useAlhambraStyles, IMG, src, ROOT_CLASS, reduceMotion } from "./Theme.tsx"
-import { isCanvas, parseDate, monthShort } from "./Behaviors.tsx"
+import { useAlhambraStyles, IMG, src, Split, ROOT_CLASS, useReveal, reduceMotion } from "./Theme.tsx"
+import { isCanvas, parseDate, monthShort, useCursor } from "./Behaviors.tsx"
+import { useCmsEvents } from "./EventsCms.tsx"
+import { Btn } from "./Button.tsx"
 
 const EVENTS = [
-    { date: "2026-02-13", tag: "Demostración", title: "Nuevo Alhambra 2", meta: "Viernes, 13 de febrero de 2026", imageUrl: IMG("bMHZY91kYoaBm3J81ZhOSSo4NZI.jpg"), linkLabel: "Más información", link: "/eventos?evento=alhambra2", sponsors: "" },
-    { date: "2026-02-14", tag: "Taller", title: "Dilo con Flores", meta: "Sábado, 14 de febrero de 2026", imageUrl: IMG("Sy5Mex1hkXOH8fWgo3KqP5ywjg0.png"), linkLabel: "Más información", link: "/eventos?evento=dilo-con-flores", sponsors: "" },
-    { date: "2026-07-28T08:30", tag: "", title: "Mid Year Sale", meta: "Martes, 28 de julio de 2026 · 8H30", imageUrl: IMG("9ZYsigPSJhc23fVR91nZnD0Dtc.png"), linkLabel: "Regístrate", link: "/eventos?evento=strong-nation", sponsors: "" },
-    { date: "2026-07-30T14:00", tag: "Fitness", title: "Feria Viva!", meta: "Jueves, 30 de julio de 2026 · 2PM", imageUrl: IMG("GDUyFdQmdNCJHE0E1d6iQbMpeBA.webp"), linkLabel: "Regístrate", link: "/eventos?evento=feria-viva", sponsors: `${IMG("AzdMndHYKY3liFiLwpYJi9sBrKc.jpeg")}, ${IMG("04sPCICMpWpd5DB9cm1q846juno.png")}` },
+    { date: "2026-02-13", tag: "Demostración", title: "Nuevo Alhambra 2", meta: "Viernes, 13 de febrero de 2026", text: "", imageUrl: IMG("bMHZY91kYoaBm3J81ZhOSSo4NZI.jpg"), linkLabel: "Más información", link: "/eventos?evento=alhambra2", sponsors: "" },
+    { date: "2026-02-14", tag: "Taller", title: "Dilo con Flores", meta: "Sábado, 14 de febrero de 2026", text: "", imageUrl: IMG("Sy5Mex1hkXOH8fWgo3KqP5ywjg0.png"), linkLabel: "Más información", link: "/eventos?evento=dilo-con-flores", sponsors: "" },
+    { date: "2026-07-28T08:30", tag: "", title: "Mid Year Sale", meta: "Martes, 28 de julio de 2026 · 8H30", text: "", imageUrl: IMG("9ZYsigPSJhc23fVR91nZnD0Dtc.png"), linkLabel: "Regístrate", link: "/eventos?evento=strong-nation", sponsors: "" },
+    { date: "2026-07-30T14:00", tag: "Fitness", title: "Feria Viva!", meta: "Jueves, 30 de julio de 2026 · 2PM", text: "", imageUrl: IMG("GDUyFdQmdNCJHE0E1d6iQbMpeBA.webp"), linkLabel: "Regístrate", link: "/eventos?evento=feria-viva", sponsors: `${IMG("AzdMndHYKY3liFiLwpYJi9sBrKc.jpeg")}, ${IMG("04sPCICMpWpd5DB9cm1q846juno.png")}` },
 ]
 
 const DAY = 86400000
-const AUTO = 7000
+const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
 const pad = (n: number) => String(n).padStart(2, "0")
 
 const statusOf = (date: Date, today: Date) => {
@@ -28,364 +32,192 @@ const statusOf = (date: Date, today: Date) => {
     return `En ${diff} días`
 }
 
-function Sponsors({ list }) {
-    if (!list.length) return null
-    return (
-        <ul className="sponsors" aria-label="Patrocinios">
-            {list.map((url, i) => (
-                <li key={i}><img src={url} alt={`Patrocinio ${i + 1}`} loading="lazy" /></li>
-            ))}
-        </ul>
-    )
-}
-
 /**
  * @framerSupportedLayoutWidth any
  * @framerSupportedLayoutHeight auto
  */
+// Del CMS (mismo formato que la agenda) al formato de esta sección
+const WEEKDAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
+const fromCms = (e: any) => {
+    if (!("slug" in e)) return e
+    const d = parseDate(e.date)
+    const day = `${WEEKDAYS[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]} de ${d.getFullYear()}`
+    return {
+        date: e.date, tag: e.tag, title: e.title, text: "",
+        meta: e.time ? `${day} · ${e.time}` : day,
+        imageUrl: e.imageUrl, sponsors: e.sponsors,
+        linkLabel: e.linkLabel || (e.register ? "Regístrate" : "Más información"),
+        link: `/eventos?evento=${encodeURIComponent(e.slug)}`,
+    }
+}
+
 export default function Events(props) {
     useAlhambraStyles()
-    const { moreLabel, moreLink, countdownLabel } = props
-    const agendaRef = useRef<HTMLDivElement>(null)
-    const listRef = useRef<HTMLOListElement>(null)
-    const trackRef = useRef<HTMLDivElement>(null)
+    const {
+        title, sub, lead, emptySub, emptyText, emptyCta, emptyLink,
+        moreLabel, moreLink, featuredLabel, lastLabel, pastCta, sponsorsLabel, cursorLabel, limit,
+    } = props
+    const events = useCmsEvents(props.events || []) as any[]
+    const root = useRef<HTMLDivElement>(null)
+    useReveal(root)
+    useCursor(root)
 
     // Las fechas dependen del reloj del visitante: se calculan tras montar
     const [now, setNow] = useState<Date | null>(null)
     useEffect(() => setNow(new Date()), [])
-    const today = useMemo(() => {
-        const t = new Date(now || 0)
-        t.setHours(0, 0, 0, 0)
-        return t
-    }, [now])
 
-    const all = useMemo(
-        () =>
-            (props.events || []).map((e, i) => {
-                const date = parseDate(e.date)
-                const past = now ? date < today : false
-                return {
-                    ...e,
-                    key: i,
-                    date,
-                    img: src(e.image, e.imageUrl),
-                    day: pad(date.getDate()),
-                    month: monthShort(date),
-                    past,
-                    soon: now ? date >= today && date.getTime() - today.getTime() < 8 * DAY : false,
-                    status: now ? statusOf(date, today) : "",
-                    sponsorList: String(e.sponsors || "").split(",").map((s) => s.trim()).filter(Boolean),
-                }
-            }),
-        [props.events, now]
-    )
-
-    // Móvil: próximos primero (del más cercano al más lejano), luego los pasados
-    const slots = useMemo(() => {
-        const up = all.filter((s) => !s.past).sort((a, b) => +a.date - +b.date)
-        const past = all.filter((s) => s.past).sort((a, b) => +b.date - +a.date)
-        return [...up, ...past]
-    }, [all])
-    // Escritorio: orden cronológico
-    const chrono = useMemo(() => [...all].sort((a, b) => +a.date - +b.date), [all])
-    const total = chrono.length
-    const passed = chrono.filter((s) => s.past).length
-
-    // Cine: evento activo y avance automático
-    const [current, setCurrent] = useState(-1)
-    const [prev, setPrev] = useState(-1)
-    const elapsed = useRef(0)
-    const select = (index: number) => {
-        elapsed.current = 0
-        setCurrent((c) => {
-            if (c !== index) setPrev(c)
-            return index
+    const { featured, others, hasUpcoming } = useMemo(() => {
+        const today = new Date(now || 0)
+        today.setHours(0, 0, 0, 0)
+        const all = events.map(fromCms).map((e, i) => {
+            const date = parseDate(e.date)
+            const isPast = now ? date < today : false
+            return {
+                ...e,
+                key: i,
+                date,
+                img: src(e.image, e.imageUrl),
+                day: pad(date.getDate()),
+                month: monthShort(date),
+                monthLong: MONTHS[date.getMonth()],
+                year: date.getFullYear(),
+                past: isPast,
+                status: now ? statusOf(date, today) : "",
+                sponsorList: String(e.sponsors || "").split(",").map((s) => s.trim()).filter(Boolean),
+            }
         })
-    }
-    useEffect(() => {
-        if (!now || !total) return
-        select(passed < total ? passed : total - 1)
-    }, [now, total])
+        const up = all.filter((s) => !s.past).sort((a, b) => +a.date - +b.date)
+        const gone = all.filter((s) => s.past).sort((a, b) => +b.date - +a.date)
+        const feat = up[0] || gone[0]
+        const rest = [...up, ...gone].filter((s) => s !== feat).slice(0, Math.max(1, Number(limit) || 3))
+        return { featured: feat, others: rest, hasUpcoming: !now || up.length > 0 }
+    }, [events, now, limit])
 
-    const setFill = (index: number) => {
-        const p = total > 1 ? Math.min((index + elapsed.current / AUTO) / (total - 1), 1) : 1
-        trackRef.current?.style.setProperty("--p", p.toFixed(4))
-    }
-    useEffect(() => setFill(current), [current])
-
-    const currentRef = useRef(current)
-    currentRef.current = current
-    useEffect(() => {
-        const agenda = agendaRef.current
-        if (!agenda || isCanvas() || total < 2) return
-        const desktop = window.matchMedia("(min-width: 961px)")
-        let inView = false, paused = false, last = 0, raf = 0
-        const canAuto = () => inView && !paused && desktop.matches && !reduceMotion() && !document.hidden
-        const loop = (t: number) => {
-            raf = 0
-            if (!canAuto()) return
-            if (last) elapsed.current += t - last
-            last = t
-            if (elapsed.current >= AUTO) select((currentRef.current + 1) % total)
-            else setFill(currentRef.current)
-            raf = requestAnimationFrame(loop)
-        }
-        const resume = () => {
-            if (raf || !canAuto()) return
-            last = 0
-            raf = requestAnimationFrame(loop)
-        }
-        const io = new IntersectionObserver(([entry]) => {
-            inView = entry.isIntersecting
-            resume()
-            restartSlide()
-        }, { threshold: 0.35 })
-        io.observe(agenda)
-        const enter = () => { paused = true }
-        const leaveP = () => { paused = agenda.contains(document.activeElement); resume() }
-        const focusIn = () => { paused = true }
-        const focusOut = (e: FocusEvent) => {
-            if (agenda.contains(e.relatedTarget as Node)) return
-            paused = agenda.matches(":hover")
-            resume()
-        }
-        agenda.addEventListener("pointerenter", enter)
-        agenda.addEventListener("pointerleave", leaveP)
-        agenda.addEventListener("focusin", focusIn)
-        agenda.addEventListener("focusout", focusOut)
-        document.addEventListener("visibilitychange", resume)
-        desktop.addEventListener("change", resume)
-
-        // Móvil: el carrusel también avanza solo
-        const list = listRef.current
-        let timer = 0 as any
-        const canSlide = () => inView && !desktop.matches && !reduceMotion() && !document.hidden
-        const slide = () => {
-            if (!list || list.children.length < 2) return
-            const a = list.children[0] as HTMLElement, b = list.children[1] as HTMLElement
-            const step = b.offsetLeft - a.offsetLeft || 1
-            const index = Math.round(list.scrollLeft / step)
-            const atEnd = index >= list.children.length - 1 || list.scrollLeft + list.clientWidth >= list.scrollWidth - 2
-            list.scrollTo({ left: atEnd ? 0 : (index + 1) * step, behavior: "smooth" })
-        }
-        const restartSlide = () => {
-            clearInterval(timer)
-            timer = canSlide() ? setInterval(slide, AUTO) : 0
-        }
-        list?.addEventListener("pointerdown", restartSlide, { passive: true })
-        document.addEventListener("visibilitychange", restartSlide)
-        desktop.addEventListener("change", restartSlide)
-
-        return () => {
-            io.disconnect()
-            cancelAnimationFrame(raf)
-            clearInterval(timer)
-            agenda.removeEventListener("pointerenter", enter)
-            agenda.removeEventListener("pointerleave", leaveP)
-            agenda.removeEventListener("focusin", focusIn)
-            agenda.removeEventListener("focusout", focusOut)
-            document.removeEventListener("visibilitychange", resume)
-            document.removeEventListener("visibilitychange", restartSlide)
-            desktop.removeEventListener("change", resume)
-            desktop.removeEventListener("change", restartSlide)
-            list?.removeEventListener("pointerdown", restartSlide)
-        }
-    }, [total])
-
-    // Móvil: puntos que siguen el carrusel
-    const [dot, setDot] = useState(0)
-    const onListScroll = () => {
-        const list = listRef.current
-        if (!list || list.children.length < 2) return
-        const step = (list.children[1] as HTMLElement).offsetLeft - (list.children[0] as HTMLElement).offsetLeft || 1
-        setDot(Math.min(Math.round(list.scrollLeft / step), list.children.length - 1))
-    }
-
-    // Cuenta regresiva al siguiente evento que aún no empieza
-    const next = useMemo(
-        () => (now ? all.filter((s) => s.date > now).sort((a, b) => +a.date - +b.date)[0] : undefined),
-        [all, now]
-    )
+    // Cuenta regresiva discreta al evento destacado, si aún no empieza
     const [left, setLeft] = useState(0)
     useEffect(() => {
-        if (!next) return
-        const render = () => setLeft(Math.max(+next.date - Date.now(), 0))
+        if (!now || !featured || featured.date <= now) { setLeft(0); return }
+        const render = () => setLeft(Math.max(+featured.date - Date.now(), 0))
         render()
         const id = setInterval(render, 1000)
         return () => clearInterval(id)
-    }, [next])
-    const units = [
-        [Math.floor(left / DAY), "días"],
-        [Math.floor(left / 3600000) % 24, "horas"],
-        [Math.floor(left / 60000) % 60, "min"],
-        [Math.floor(left / 1000) % 60, "seg"],
-    ]
+    }, [featured, now])
+    const countdown = left > 0
+        ? [
+            [Math.floor(left / DAY), "días"],
+            [Math.floor(left / 3600000) % 24, "horas"],
+            [Math.floor(left / 60000) % 60, "min"],
+        ]
+        : null
 
-    // El afiche y su fondo se desplazan en sentidos opuestos según el mouse
-    const onCinemaMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        const el = e.currentTarget
-        const r = el.getBoundingClientRect()
-        el.style.setProperty("--mx", (((e.clientX - r.left) / r.width) * 2 - 1).toFixed(3))
-        el.style.setProperty("--my", (((e.clientY - r.top) / r.height) * 2 - 1).toFixed(3))
-    }
-    const onCinemaLeave = (e: React.PointerEvent<HTMLDivElement>) => {
-        e.currentTarget.style.setProperty("--mx", "0")
-        e.currentTarget.style.setProperty("--my", "0")
-    }
+    // Parallax: la foto destacada se desplaza más lento que la página
+    const featRef = useRef<HTMLElement>(null)
+    useEffect(() => {
+        const el = featRef.current
+        if (!el || reduceMotion() || isCanvas()) return
+        let raf = 0
+        const tick = () => {
+            raf = 0
+            const r = el.getBoundingClientRect()
+            const vh = window.innerHeight
+            if (r.bottom < 0 || r.top > vh) return
+            const t = (vh / 2 - (r.top + r.height / 2)) / ((vh + r.height) / 2)
+            el.style.setProperty("--py", `${(t * 7).toFixed(2)}%`)
+        }
+        const kick = () => { if (!raf) raf = requestAnimationFrame(tick) }
+        window.addEventListener("scroll", kick, { passive: true })
+        window.addEventListener("resize", kick)
+        kick()
+        return () => {
+            cancelAnimationFrame(raf)
+            window.removeEventListener("scroll", kick)
+            window.removeEventListener("resize", kick)
+        }
+    }, [featured])
 
-    const todayAt =
-        passed === 0
-            ? "calc(50% / var(--n) - 32px)"
-            : passed === total
-              ? "calc(100% - 50% / var(--n) + 32px)"
-              : `${(passed / total) * 100}%`
-
-    const onStopsKey = (e: React.KeyboardEvent) => {
-        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return
-        e.preventDefault()
-        const index = (current + (e.key === "ArrowRight" ? 1 : -1) + total) % total
-        select(index)
-        const btn = (e.currentTarget as HTMLElement).querySelectorAll("button")[index] as HTMLElement
-        btn?.focus()
-    }
+    const reveal = isCanvas() ? "" : " reveal"
 
     return (
-        <div className={ROOT_CLASS} style={{ width: "100%" }}>
+        <div className={ROOT_CLASS} style={{ width: "100%" }} ref={root}>
             <section className="section events" id="inicio" aria-labelledby="events-title">
                 <div className="container">
-                    <header className="events__head">
-                        <h2 className="visually-hidden" id="events-title">Eventos</h2>
-                        <div className="countdown" hidden={!next}>
-                            <p className="countdown__label">
-                                {countdownLabel} · <span>{next?.title}</span>
-                            </p>
-                            <p className="countdown__clock" aria-hidden="true">
-                                {units.map(([v, label]) => (
-                                    <span key={label as string}>
-                                        <b>{pad(v as number)}</b>
-                                        <small>{label}</small>
-                                    </span>
-                                ))}
-                            </p>
-                        </div>
+                    <header className={`discover__head discover__head--center events__head${reveal} reveal--stagger`}>
+                        <Split className="discover__title" id="events-title" text={title} />
+                        <p className="discover__sub">{hasUpcoming ? sub : emptySub}</p>
+                        <p className="discover__lead">{hasUpcoming ? lead : emptyText}</p>
                     </header>
 
-                    <div className="agenda is-enhanced" ref={agendaRef}>
-                        <div className="cinema" onPointerMove={onCinemaMove} onPointerLeave={onCinemaLeave}>
-                            {chrono.map((s, i) => {
-                                const cls = [
-                                    "cinema__panel",
-                                    i === current && "is-active",
-                                    i === prev && i !== current && "is-leaving",
-                                    s.past && "is-past",
-                                    s.soon && "is-soon",
-                                ].filter(Boolean).join(" ")
-                                const parts = [
-                                    <p className="cinema__date" key="d">
-                                        <span className="cinema__day">{s.day}</span>
-                                        <span className="cinema__month">{`${s.month} ${s.date.getFullYear()}`}</span>
-                                    </p>,
-                                    s.tag ? <p className="slot__tag" key="t">{s.tag}</p> : null,
-                                    <h3 className="slot__title" key="h">{s.title}</h3>,
-                                    <p className="slot__meta" key="m">{s.meta}</p>,
-                                    s.status ? <p className="slot__status" key="s">{s.status}</p> : null,
-                                    s.sponsorList.length ? <Sponsors list={s.sponsorList} key="sp" /> : null,
-                                    <a className="btn btn--light" href={s.link} key="a">
-                                        {s.linkLabel} <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                                    </a>,
-                                ].filter(Boolean)
-                                return (
-                                    <article className={cls} aria-label={s.title} key={s.key} {...((i !== current ? { inert: "" } : {}) as any)}>
-                                        <img className="cinema__glow" src={s.img} alt="" />
-                                        <div className="cinema__info">
-                                            {parts.map((node, d) => (
-                                                <div className="cinema__line" key={d}>
-                                                    <div className="cinema__lift" style={{ ["--d" as any]: d }}>{node}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="cinema__media">
-                                            <img className="cinema__poster" src={s.img} alt={s.title} />
-                                        </div>
-                                    </article>
-                                )
-                            })}
-
-                            <div className="timeline">
-                                <div className="timeline__nav">
-                                    <button type="button" className="timeline__arrow" aria-label="Evento anterior" onClick={() => select((current - 1 + total) % total)}>
-                                        <i className="ph ph-arrow-left" aria-hidden="true"></i>
-                                    </button>
-                                    <p className="timeline__count" aria-hidden="true">
-                                        <b>{pad(current + 1)}</b> / <span>{pad(total)}</span>
-                                    </p>
-                                    <button type="button" className="timeline__arrow" aria-label="Evento siguiente" onClick={() => select((current + 1) % total)}>
-                                        <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                                <div className="timeline__track" ref={trackRef} style={{ ["--n" as any]: String(total) }}>
-                                    <span className="timeline__line"><span className="timeline__fill"></span></span>
-                                    <ol className="timeline__stops" onKeyDown={onStopsKey}>
-                                        {chrono.map((s, i) => (
-                                            <li key={s.key}>
-                                                <button
-                                                    type="button"
-                                                    className={`timeline__stop${s.past ? " is-past" : ""}`}
-                                                    aria-current={i === current ? "true" : undefined}
-                                                    aria-label={`${s.title}, ${s.day} ${s.month}`}
-                                                    onClick={() => select(i)}
-                                                >
-                                                    <span className="timeline__dot"></span>
-                                                    <b className="timeline__when">{`${s.day} ${s.month}`}</b>
-                                                    <span className="timeline__name">{s.title}</span>
-                                                </button>
-                                            </li>
+                    {featured ? (
+                        <article className={`evfeat${featured.past ? " is-past" : ""}${reveal}`} aria-labelledby="evfeat-title" ref={featRef}>
+                            <a className="evfeat__media" href={featured.link} tabIndex={-1} aria-hidden="true" data-cursor={cursorLabel}>
+                                <img src={featured.img} alt="" decoding="async" />
+                                <span className="evfeat__shade"></span>
+                                <span className="evfeat__grain"></span>
+                            </a>
+                            <div className="evfeat__body">
+                                <p className="evfeat__kicker">
+                                    {featured.past ? lastLabel : featuredLabel}
+                                    {featured.tag ? <span>{featured.tag}</span> : null}
+                                </p>
+                                <time className="evfeat__date" dateTime={featured.date.toISOString()}>
+                                    <span className="evfeat__day">{featured.day}</span>
+                                    <span className="evfeat__month">{`${featured.monthLong} ${featured.year}`}</span>
+                                </time>
+                                <h3 className="evfeat__title" id="evfeat-title">{featured.title}</h3>
+                                <p className="evfeat__meta">{featured.meta}</p>
+                                {featured.text ? <p className="evfeat__text">{featured.text}</p> : null}
+                                {countdown ? (
+                                    <p className="evfeat__count" aria-label={`Faltan ${countdown.map(([v, u]) => `${v} ${u}`).join(", ")}`}>
+                                        {countdown.map(([v, u]) => (
+                                            <span key={u as string}>
+                                                <b>{pad(v as number)}</b>
+                                                <small>{u}</small>
+                                            </span>
                                         ))}
-                                    </ol>
-                                    {now ? <span className="timeline__today" style={{ ["--today" as any]: todayAt }}>Hoy</span> : null}
-                                </div>
-                                <div className="timeline__more">
-                                    <a className="btn btn--light" href={moreLink} data-magnetic="">
-                                        {moreLabel} <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                                    </a>
-                                </div>
+                                    </p>
+                                ) : null}
+                                <Btn variant="light" className="evfeat__cta" href={featured.link}>
+                                    {featured.past ? pastCta : featured.linkLabel}
+                                </Btn>
+                                {featured.sponsorList.length ? (
+                                    <div className="evfeat__sponsors">
+                                        <p>{sponsorsLabel}</p>
+                                        <ul>
+                                            {featured.sponsorList.map((url, i) => (
+                                                <li key={i}><img src={url} alt={`Patrocinio ${i + 1}`} loading="lazy" /></li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ) : null}
                             </div>
-                        </div>
+                        </article>
+                    ) : null}
 
-                        <ol className="agenda__list" ref={listRef} onScroll={onListScroll}>
-                            {slots.map((s) => (
-                                <li className={`slot${s.past ? " is-past" : ""}${s.soon ? " is-soon" : ""}`} key={s.key}>
-                                    <article className="slot__card">
-                                        <img className="slot__img" src={s.img} alt="" loading="lazy" decoding="async" />
-                                        <time className="slot__date" dateTime={s.date.toISOString()}>
-                                            <span className="slot__day">{s.day}</span>
-                                            <span className="slot__month">{s.month}</span>
+                    {others.length ? (
+                        <ul className="evcards" style={{ ["--cols" as any]: String(Math.min(others.length, 3)) }}>
+                            {/* Clave por posición: las tarjetas no cambian de nodo cuando se conoce la fecha y el revelado sigue funcionando */}
+                            {others.map((s, i) => (
+                                <li className={`evcard${s.past ? " is-past" : ""}${reveal}`} key={i} style={{ ["--delay" as any]: `${(i * 0.12).toFixed(2)}s` }}>
+                                    <a className="evcard__link" href={s.link}>
+                                        <span className="evcard__media" data-cursor={cursorLabel}>
+                                            <img src={s.img} alt="" loading="lazy" decoding="async" />
+                                        </span>
+                                        <time className="evcard__date" dateTime={s.date.toISOString()}>
+                                            {`${s.day} ${s.month} ${s.year}`}
                                         </time>
-                                        <div className="slot__info">
-                                            {s.tag ? <p className="slot__tag">{s.tag}</p> : null}
-                                            <h3 className="slot__title">{s.title}</h3>
-                                            <p className="slot__meta">{s.meta}</p>
-                                            <p className="slot__status">{s.status}</p>
-                                            <Sponsors list={s.sponsorList} />
-                                        </div>
-                                        <a className="slot__link" href={s.link}>
-                                            {s.linkLabel} <i className="ph ph-arrow-up-right" aria-hidden="true"></i>
-                                        </a>
-                                    </article>
+                                        <span className="evcard__title">{s.title}</span>
+                                        <span className="evcard__status">{s.past ? s.tag || s.status : s.status}</span>
+                                    </a>
                                 </li>
                             ))}
-                        </ol>
-                        {slots.length > 1 ? (
-                            <div className="agenda__dots" aria-hidden="true">
-                                {slots.map((s, i) => <span key={s.key} className={i === dot ? "is-on" : undefined}></span>)}
-                            </div>
-                        ) : null}
-                    </div>
+                        </ul>
+                    ) : null}
 
-                    <div className="events__more">
-                        <a className="btn btn--dark" href={moreLink}>
-                            {moreLabel} <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                        </a>
+                    <div className={`events__actions${reveal}`}>
+                        <Btn variant="line" href={moreLink}>{moreLabel}</Btn>
+                        {!hasUpcoming ? (
+                            <Btn variant="line" href={emptyLink}>{emptyCta}</Btn>
+                        ) : null}
                     </div>
                 </div>
             </section>
@@ -395,9 +227,21 @@ export default function Events(props) {
 
 Events.defaultProps = {
     events: EVENTS,
-    moreLabel: "Ver todos los eventos",
+    title: "Próximamente",
+    sub: "Lo que viene en Alhambra.",
+    lead: "Encuentros, talleres y celebraciones para vivir el centro de otra manera.",
+    emptySub: "Nuevas experiencias, muy pronto.",
+    emptyText: "Estamos preparando la próxima agenda. Suscríbete y entérate antes que nadie.",
+    emptyCta: "Recibir novedades",
+    emptyLink: "#suscripcion",
+    featuredLabel: "Próximo evento",
+    lastLabel: "Lo último en Alhambra",
+    pastCta: "Ver el evento",
+    sponsorsLabel: "Con el apoyo de",
+    cursorLabel: "Ver",
+    moreLabel: "Ver toda la agenda",
     moreLink: "/eventos",
-    countdownLabel: "Próximo evento",
+    limit: 3,
 }
 
 addPropertyControls(Events, {
@@ -411,6 +255,7 @@ addPropertyControls(Events, {
                 date: { type: ControlType.String, title: "Fecha", placeholder: "2026-07-28T08:30", description: "AAAA-MM-DD o AAAA-MM-DDTHH:MM" },
                 tag: { type: ControlType.String, title: "Etiqueta" },
                 meta: { type: ControlType.String, title: "Fecha legible" },
+                text: { type: ControlType.String, title: "Descripción", displayTextArea: true, description: "Se muestra cuando el evento es el destacado" },
                 image: { type: ControlType.ResponsiveImage, title: "Imagen" },
                 imageUrl: { type: ControlType.String, title: "Imagen (URL)", description: "Se usa si no subes una imagen" },
                 linkLabel: { type: ControlType.String, title: "Texto botón" },
@@ -420,7 +265,19 @@ addPropertyControls(Events, {
         },
         defaultValue: EVENTS,
     },
-    countdownLabel: { type: ControlType.String, title: "Cuenta regresiva", defaultValue: "Próximo evento" },
-    moreLabel: { type: ControlType.String, title: "Texto «ver todos»", defaultValue: "Ver todos los eventos" },
+    title: { type: ControlType.String, title: "Título", defaultValue: Events.defaultProps.title },
+    sub: { type: ControlType.String, title: "Subtítulo", defaultValue: Events.defaultProps.sub },
+    lead: { type: ControlType.String, title: "Texto", displayTextArea: true, defaultValue: Events.defaultProps.lead },
+    emptySub: { type: ControlType.String, title: "Sin próximos · subtítulo", defaultValue: Events.defaultProps.emptySub },
+    emptyText: { type: ControlType.String, title: "Sin próximos · texto", displayTextArea: true, defaultValue: Events.defaultProps.emptyText },
+    emptyCta: { type: ControlType.String, title: "Sin próximos · enlace (texto)", defaultValue: Events.defaultProps.emptyCta },
+    emptyLink: { type: ControlType.Link, title: "Sin próximos · enlace", defaultValue: Events.defaultProps.emptyLink },
+    featuredLabel: { type: ControlType.String, title: "Rótulo destacado", defaultValue: Events.defaultProps.featuredLabel },
+    lastLabel: { type: ControlType.String, title: "Rótulo último", defaultValue: Events.defaultProps.lastLabel },
+    pastCta: { type: ControlType.String, title: "Botón si ya pasó", defaultValue: Events.defaultProps.pastCta },
+    sponsorsLabel: { type: ControlType.String, title: "Rótulo patrocinios", defaultValue: Events.defaultProps.sponsorsLabel },
+    cursorLabel: { type: ControlType.String, title: "Texto del cursor", defaultValue: "Ver" },
+    limit: { type: ControlType.Number, title: "Tarjetas máximas", min: 1, max: 9, step: 1, defaultValue: 3 },
+    moreLabel: { type: ControlType.String, title: "Texto «ver todos»", defaultValue: Events.defaultProps.moreLabel },
     moreLink: { type: ControlType.Link, title: "Enlace «ver todos»", defaultValue: "/eventos" },
 })

@@ -7,6 +7,7 @@ import { useMemo, useRef, useState } from "react"
 import { ControlType } from "framer"
 import { useAlhambraStyles, IMG, src, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { useCmsLocals } from "./DirectoryCms.tsx"
 
 export type DirectoryItem = {
     name: string
@@ -16,6 +17,7 @@ export type DirectoryItem = {
     logo?: any
     logoUrl?: string
     faint?: boolean
+    link?: string
 }
 
 // Minúsculas y sin tildes, para que «cafeteria» encuentre «Cafetería»
@@ -28,12 +30,24 @@ const asset = (value?: string) => (value ? (/^https?:/.test(value) ? value : IMG
 const splitCats = (value: string) =>
     String(value || "").split(/\s*[|,]\s*/).filter(Boolean)
 
+// Enlace opcional (web o Instagram del local); sin enlace, la tarjeta queda igual
+function CardLink({ href, label, children }) {
+    if (!href) return children
+    return (
+        <a href={href} target="_blank" rel="noopener" aria-label={label} style={{ display: "contents", color: "inherit" }}>
+            {children}
+        </a>
+    )
+}
+
 export function Directory(props) {
     useAlhambraStyles()
     const {
         gridId, square, eyebrow, sub, searchLabel, placeholder, chipsLabel,
-        categories, mainChips, items, emptyText, alt,
+        categories, mainChips, emptyText, alt, collection,
     } = props
+    // Del CMS si la página tiene la Collection List; si no, los del panel
+    const items = useCmsLocals(collection, props.items || []) as DirectoryItem[]
     const root = useRef<HTMLDivElement>(null)
     const [category, setCategory] = useState<string | null>(null)
     const [query, setQuery] = useState("")
@@ -130,14 +144,16 @@ export function Directory(props) {
                                     hidden={!shown[i]}
                                     style={{ ["--delay" as any]: `${(i % 4) * 0.08}s` }}
                                 >
-                                    <figure className="card__photo">
-                                        <img src={src(item.photo, asset(item.photoUrl))} alt={item.name} loading="lazy" decoding="async" />
-                                    </figure>
-                                    {logo ? (
-                                        <div className={`card__logo${item.faint ? " card__logo--faint" : ""}`}>
-                                            <img src={logo} alt={`${alt} ${item.name}`} loading="lazy" />
-                                        </div>
-                                    ) : null}
+                                    <CardLink href={item.link} label={item.name}>
+                                        <figure className="card__photo">
+                                            <img src={src(item.photo, asset(item.photoUrl))} alt={item.name} loading="lazy" decoding="async" />
+                                        </figure>
+                                        {logo ? (
+                                            <div className={`card__logo${item.faint ? " card__logo--faint" : ""}`}>
+                                                <img src={logo} alt={`${alt} ${item.name}`} loading="lazy" />
+                                            </div>
+                                        ) : null}
+                                    </CardLink>
                                 </li>
                             )
                         })}

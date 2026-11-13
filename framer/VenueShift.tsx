@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, IMG, src, Split, ROOT_CLASS, useReveal, reduceMotion } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { Toggle } from "./Toggle.tsx"
 
 const FEATURES = [
     { icon: "armchair", text: "240 butacas que se abaten solas" },
@@ -123,14 +124,15 @@ export default function VenueShift(props) {
                                 aria-valuetext={`${Math.round(pos)}% ${beforeLabel.toLowerCase()}`}
                             />
                         </div>
-                        <div className="venue-toggle" role="group" aria-label="Formato del espacio">
-                            <button type="button" aria-pressed={showing === "before"} onClick={() => glideTo(100)}>
-                                <i className="ph ph-armchair" aria-hidden="true"></i> {beforeLabel}
-                            </button>
-                            <button type="button" aria-pressed={showing === "after"} onClick={() => glideTo(0)}>
-                                <i className="ph ph-champagne" aria-hidden="true"></i> {afterLabel}
-                            </button>
-                        </div>
+                        <Toggle
+                            label="Formato del espacio"
+                            value={showing}
+                            onChange={(v) => glideTo(v === "before" ? 100 : 0)}
+                            options={[
+                                { value: "before", label: beforeLabel, icon: "armchair" },
+                                { value: "after", label: afterLabel, icon: "champagne" },
+                            ]}
+                        />
                     </div>
                 </div>
             </section>

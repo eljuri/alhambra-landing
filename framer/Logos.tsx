@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, IMG, src, ROOT_CLASS, useReveal, reduceMotion } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { useCmsLocals, type CmsLocal } from "./DirectoryCms.tsx"
 
 const L = (name: string, w: number, h: number, faint = false) => ({ imageUrl: IMG(name), width: w, height: h, faint })
 const BRANDS = [
@@ -28,6 +29,63 @@ const k = (w: number, h: number) => {
     return Math.min(Math.max(ratio ** -0.42, 0.34), 1).toFixed(3)
 }
 
+// Locales del CMS marcados «Mostrar en el inicio» (y con logo) → logos de la fila.
+// Sin Collection List en la página, la fila usa los logos del panel.
+function useRowLogos(collection: "marcas" | "restaurantes", fallback: any[]) {
+    const items = useCmsLocals<never>(collection, []) as CmsLocal[]
+    const fromCms = items.filter((l) => l.home && l.logoUrl)
+    if (!fromCms.length) return fallback
+    // Sin ancho/alto: las medidas que da el CMS no son fiables (muchas vienen
+    // como 240×131); la escala se calcula con la imagen real al cargar.
+    return fromCms.map((l) => ({ imageUrl: l.logoUrl, width: 0, height: 0, faint: l.faint, alt: l.name }))
+}
+
+// Los PNG vienen centrados en un lienzo transparente (p. ej. 240×131), así que
+// sin medidas a mano (logos del CMS) se mide el área visible del dibujo.
+const trimCache = new Map<string, Promise<[number, number]>>()
+function visibleSize(url: string): Promise<[number, number]> {
+    let p = trimCache.get(url)
+    if (!p) {
+        p = new Promise((resolve) => {
+            const img = new Image()
+            img.crossOrigin = "anonymous"
+            img.onload = () => {
+                const w = img.naturalWidth, h = img.naturalHeight
+                try {
+                    const c = document.createElement("canvas")
+                    c.width = w
+                    c.height = h
+                    const ctx = c.getContext("2d")!
+                    ctx.drawImage(img, 0, 0)
+                    const data = ctx.getImageData(0, 0, w, h).data
+                    let x0 = w, y0 = h, x1 = -1, y1 = -1
+                    for (let y = 0; y < h; y++)
+                        for (let x = 0; x < w; x++)
+                            if (data[(y * w + x) * 4 + 3] > 16) {
+                                if (x < x0) x0 = x
+                                if (x > x1) x1 = x
+                                if (y < y0) y0 = y
+                                if (y > y1) y1 = y
+                            }
+                    resolve(x1 < 0 ? [w, h] : [x1 - x0 + 1, y1 - y0 + 1])
+                } catch {
+                    resolve([w, h])
+                }
+            }
+            img.onerror = () => resolve([0, 0])
+            img.src = url
+        })
+        trimCache.set(url, p)
+    }
+    return p
+}
+
+const fitOnLoad = (e) => {
+    const img = e.currentTarget as HTMLImageElement
+    if (img.getAttribute("width") || !img.currentSrc) return
+    visibleSize(img.currentSrc).then(([w, h]) => w && img.style.setProperty("--k", k(w, h)))
+}
+
 function Marquee({ label, logos, reverse }) {
     const box = useRef<HTMLDivElement>(null)
     const track = useRef<HTMLUListElement>(null)
@@ -48,7 +106,8 @@ function Marquee({ label, logos, reverse }) {
         if (document.readyState === "complete") measure()
         else window.addEventListener("load", measure, { once: true })
         const imgs = Array.from(track.current?.querySelectorAll("img") || [])
-        imgs.forEach((img) => img.complete || img.addEventListener("load", measure, { once: true }))
+        // Las que ya cargaron antes de hidratar no disparan onLoad
+        imgs.forEach((img) => (img.complete ? fitOnLoad({ currentTarget: img }) : img.addEventListener("load", measure, { once: true })))
         let width = window.innerWidth
         const onResize = () => {
             if (window.innerWidth === width) return
@@ -73,8 +132,9 @@ function Marquee({ label, logos, reverse }) {
                         <img
                             src={src(l.image, l.imageUrl)}
                             alt={l.alt || ""}
-                            width={l.width}
-                            height={l.height}
+                            width={l.width || undefined}
+                            height={l.height || undefined}
+                            onLoad={fitOnLoad}
                             loading="lazy"
                             decoding="async"
                             style={{ ["--k" as any]: k(l.width, l.height) }}
@@ -127,6 +187,8 @@ export default function Logos(props) {
         brandsLabel, brandsLink, brandsLinkLabel, restLabel, restLink, restLinkLabel } = props
     const root = useRef<HTMLDivElement>(null)
     useReveal(root)
+    const brandRow = useRowLogos("marcas", brandLogos || [])
+    const restRow = useRowLogos("restaurantes", restaurantLogos || [])
 
     // Al hacer scroll las filas aceleran con la velocidad; al subir, giran al revés
     useEffect(() => {
@@ -193,7 +255,7 @@ export default function Logos(props) {
                                 {brandsLinkLabel} <i className="ph ph-arrow-right" aria-hidden="true"></i>
                             </a>
                         </div>
-                        <Marquee label={brandsLabel} logos={brandLogos || []} reverse={false} />
+                        <Marquee label={brandsLabel} logos={brandRow} reverse={false} />
                     </div>
 
                     <div className={`logo-row${reveal}`}>
@@ -203,7 +265,7 @@ export default function Logos(props) {
                                 {restLinkLabel} <i className="ph ph-arrow-right" aria-hidden="true"></i>
                             </a>
                         </div>
-                        <Marquee label={restLabel} logos={restaurantLogos || []} reverse={true} />
+                        <Marquee label={restLabel} logos={restRow} reverse={true} />
                     </div>
                 </div>
             </section>

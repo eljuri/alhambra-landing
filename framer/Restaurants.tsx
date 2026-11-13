@@ -29,7 +29,7 @@ const CATEGORIES = [
  * @framerSupportedLayoutHeight auto
  */
 export default function Restaurants(props) {
-    return <Directory {...props} gridId="restaurantes-grid" square={true} searchLabel="Buscar restaurantes" chipsLabel="Tipos de comida" alt="Logo" />
+    return <Directory {...props} collection="restaurantes" gridId="restaurantes-grid" square={true} searchLabel="Buscar restaurantes" chipsLabel="Tipos de comida" alt="Logo" />
 }
 
 Restaurants.defaultProps = {

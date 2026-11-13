@@ -11,6 +11,14 @@ const LINKS = [
     { label: "Auditorio", link: "/salonauditorio" },
 ]
 
+// Si el enlace llega vacío desde Framer (p. ej. no se eligió página en el panel),
+// se usa la ruta por defecto del mismo texto para que el menú nunca quede muerto.
+const norm = (s = "") => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim()
+function hrefFor(l: { label?: string; link?: string }) {
+    if (l?.link) return l.link
+    return LINKS.find((d) => norm(d.label) === norm(l?.label))?.link
+}
+
 /**
  * @framerSupportedLayoutWidth any
  * @framerSupportedLayoutHeight auto
@@ -78,9 +86,12 @@ export default function Nav(props) {
                     </button>
                     <nav className="nav__menu" id="nav-menu" aria-label="Principal" onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>
                         <ul className="nav__links">
-                            {(links || []).map((l, i) => (
-                                <li key={i}><a href={l.link} aria-current={path && l.link === path ? "page" : undefined}>{l.label}</a></li>
-                            ))}
+                            {(links || []).map((l, i) => {
+                                const href = hrefFor(l)
+                                return (
+                                    <li key={i}><a href={href} aria-current={path && href === path ? "page" : undefined}>{l.label}</a></li>
+                                )
+                            })}
                         </ul>
                     </nav>
                 </div>

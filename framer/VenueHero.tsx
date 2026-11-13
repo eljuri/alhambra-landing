@@ -2,6 +2,7 @@
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, IMG, src, ROOT_CLASS } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { Btn } from "./Button.tsx"
 
 const STATS = [
     { value: "240", label: "butacas abatibles" },
@@ -32,10 +33,8 @@ export default function VenueHero(props) {
                         <h1 className="hero__title" id="venue-title">{title}</h1>
                         {lead ? <p className="hero__lead">{lead}</p> : null}
                         <div className="hero__actions">
-                            <a className="btn btn--light" href={ctaLink}>
-                                {cta} <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                            </a>
-                            <a className="btn btn--ghost" href={cta2Link}>{cta2}</a>
+                            <Btn variant="light" href={ctaLink}>{cta}</Btn>
+                            <Btn variant="ghost" href={cta2Link}>{cta2}</Btn>
                         </div>
                     </div>
                     <dl className={`venue-stats${intro} intro--late`}>

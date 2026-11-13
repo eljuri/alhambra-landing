@@ -51,7 +51,7 @@ const CATEGORIES = [
  * @framerSupportedLayoutHeight auto
  */
 export default function Brands(props) {
-    return <Directory {...props} gridId="shopping-grid" square={false} searchLabel="Buscar marcas" chipsLabel="Categorías de productos" alt="Logo" />
+    return <Directory {...props} collection="marcas" gridId="shopping-grid" square={false} searchLabel="Buscar marcas" chipsLabel="Categorías de productos" alt="Logo" />
 }
 
 Brands.defaultProps = {

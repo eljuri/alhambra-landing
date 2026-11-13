@@ -4,6 +4,7 @@
 
 export const ControlType = {
     Boolean: "boolean",
+    Date: "date",
     Number: "number",
     String: "string",
     Color: "color",

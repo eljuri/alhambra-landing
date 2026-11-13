@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { Btn } from "./Button.tsx"
+import { Toggle } from "./Toggle.tsx"
 
 const emailShape = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
@@ -153,15 +155,16 @@ export default function VenueBooking(props) {
                     >
                         <fieldset className="venue-form__kind field--wide">
                             <legend>Tipo de evento</legend>
-                            <div className="venue-toggle venue-toggle--block">
-                                {(["personal", "corporativo"] as const).map((k) => (
-                                    <label key={k} className={kind === k ? "is-checked" : ""}>
-                                        <input type="radio" name="tipo" value={k} checked={kind === k} onChange={() => setKind(k)} />
-                                        <i className={`ph ph-${k === "personal" ? "heart" : "briefcase"}`} aria-hidden="true"></i>
-                                        {k === "personal" ? "Personal" : "Corporativo o institucional"}
-                                    </label>
-                                ))}
-                            </div>
+                            <Toggle
+                                variant="block"
+                                name="tipo"
+                                value={kind}
+                                onChange={setKind}
+                                options={[
+                                    { value: "personal", label: "Personal", icon: "heart" },
+                                    { value: "corporativo", label: "Corporativo o institucional", icon: "briefcase" },
+                                ]}
+                            />
                         </fieldset>
 
                         {select("evento", corporate ? "¿Qué tipo de evento corporativo?" : "¿Qué tipo de evento personal?", "confetti", corporate ? CORPORATE : PERSONAL, true)}
@@ -191,9 +194,7 @@ export default function VenueBooking(props) {
                         </label>
 
                         <div className="form__foot field--wide">
-                            <button className="form__submit" type="submit">
-                                {submitLabel} <span><i className="ph ph-arrow-right" aria-hidden="true"></i></span>
-                            </button>
+                            <Btn variant="dark" type="submit" block>{submitLabel}</Btn>
                         </div>
                     </form>
                 </div>

@@ -5,6 +5,7 @@ import { useRef } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
+import { Btn } from "./Button.tsx"
 
 const QUESTIONS = [
     { q: "¿Es auditorio o salón de eventos?", a: "Las dos cosas. Gracias a las butacas abatibles automáticas, el auditorio se convierte en salón en 5 minutos, de forma totalmente automática." },
@@ -36,9 +37,7 @@ export default function VenueFaq(props) {
                         <p className="eyebrow-title eyebrow-title--dark">{eyebrow}</p>
                         <Split className="discover__title" id="faq-title" text={title} />
                         <p className="discover__lead">{lead}</p>
-                        <a className="btn btn--line" href={ctaLink}>
-                            {cta} <i className="ph ph-arrow-right" aria-hidden="true"></i>
-                        </a>
+                        <Btn variant="line" href={ctaLink}>{cta}</Btn>
                     </header>
                     <div className={`faq${reveal}`}>
                         {(questions || []).map((item, i) => (

@@ -15,7 +15,7 @@ Las variables están definidas en `:root` de `styles.css`.
 | `--graphite` | `#3b3b3c` | 59, 59, 60 | Fondo de nav (scroll y menú móvil), formulario y footer. Es el gris de la barra «SHOPPING» de alhambrashopping.com |
 | `--ink-soft` | `#5b5248` | 91, 82, 72 | Texto secundario sobre fondos claros |
 | `--sand` | `#cdb9a2` | 205, 185, 162 | Acento: eyebrows, íconos, subrayado del nav, foco en inputs |
-| `--sand-deep` | `#9c8466` | 156, 132, 102 | Hover del botón oscuro, contorno de foco, día activo en la agenda |
+| `--sand-deep` | `#9c8466` | 156, 132, 102 | Contorno de foco, día activo en la agenda |
 | — | `#76634c` | 118, 99, 76 | Arena oscurecida para texto pequeño sobre fondos claros (≥ 5:1) |
 | `--cream` | `#f5f0e9` | 245, 240, 233 | Fondo de las secciones alternas y texto sobre fondos oscuros |
 | `--paper` | `#fbf9f5` | 251, 249, 245 | Fondo base de la página |
@@ -82,7 +82,7 @@ Son las mismas fuentes de alhambrashopping.com. Los archivos están en `fonts/` 
 | Cuerpo | Text | 16px | 400 | 1.6 | — |
 | Intro | Text | 1.0625rem | 400 | 1.6 | — |
 | Links del nav | Text | 0.8125rem, MAYÚSCULAS | 500 | — | 0.08em |
-| Botones | Text | 0.875rem, MAYÚSCULAS | 600 | — | 0.06em |
+| Botones | Urbanist | 1rem | 600 | 1.2 | 0.01em |
 | Eyebrow | Text | 0.8125rem, MAYÚSCULAS | 600 | — | 0.24em |
 | Etiquetas pequeñas (mes, tipo, footer) | Text | 0.75rem, MAYÚSCULAS | 600 | — | 0.14–0.2em |
 | Etiqueta del formulario | Urbanist | 0.8125rem | 500 | — | 0.04em |
@@ -111,6 +111,29 @@ Son las mismas fuentes de alhambrashopping.com. Los archivos están en `fonts/` 
 | `--ease-out` | `cubic-bezier(0.16, 1, 0.3, 1)` |
 
 Con `prefers-reduced-motion` se desactivan todas las animaciones.
+
+## Botones
+
+Un solo componente: `Btn` en `framer/Button.tsx` (la exportación por defecto es
+la versión con controles para el lienzo de Framer). Es una píldora de 52px de
+alto con el texto en Urbanist y el ícono Phosphor dentro de un círculo de 40px
+que se desplaza 3px al pasar el mouse.
+
+| Variante | Fondo / texto | Círculo | Uso |
+|---|---|---|---|
+| `dark` | `--ink` / `--cream` | `--sand` → `--cream` en hover | Acción principal sobre fondos claros, envío de formularios (`block`) |
+| `light` | `--cream` / `--ink` | `--sand` → `--ink` en hover | Acción principal sobre fotos u oscuro |
+| `line` | borde `--line` / `--ink` → relleno `--ink` en hover | `--cream` → `--sand` | Acción secundaria sobre fondos claros |
+| `ghost` | borde cream al 50 % / `--cream` | cream al 14 % → `--cream` | Acción secundaria sobre fotos u oscuro |
+
+```tsx
+import { Btn } from "./Button.tsx"
+<Btn variant="dark" href="/eventos">Ver toda la agenda</Btn>
+<Btn variant="line" icon="calendar-plus" onClick={add}>Agregar al calendario</Btn>
+<Btn variant="dark" type="submit" block>Enviar</Btn>
+```
+
+`icon` acepta cualquier nombre Phosphor (por defecto `arrow-right`); `icon={null}` lo quita.
 
 ## Iconos
 

@@ -14,12 +14,15 @@ const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect
 export function useAlhambraStyles() {
     useIso(() => {
         if (typeof document === "undefined") return
-        if (!document.getElementById("alh-css")) {
-            const style = document.createElement("style")
+        // Si ya existe pero con otra versión de la hoja (Framer recarga los
+        // módulos sin recargar la página), se reemplaza el contenido
+        let style = document.getElementById("alh-css")
+        if (!style) {
+            style = document.createElement("style")
             style.id = "alh-css"
-            style.textContent = CSS
             document.head.appendChild(style)
         }
+        if (style.textContent !== CSS) style.textContent = CSS
         if (!document.getElementById("alh-icons")) {
             const link = document.createElement("link")
             link.id = "alh-icons"
