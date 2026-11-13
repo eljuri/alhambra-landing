@@ -11,7 +11,7 @@ import { Btn } from "./Button.tsx"
 import { toCmsEvent, EVENT_FIELD_CONTROLS } from "./EventsCms.tsx"
 import {
     sized, statusOf, withDates, downloadIcs, useToast, shareEvent,
-    Sponsors, EventMeta, RegisterForm, REGISTER_TEXTS, paragraphs,
+    Sponsors, EventMeta, RegisterForm, REGISTER_TEXTS, POLICY_PATH, paragraphs,
 } from "./EventShared.tsx"
 
 /**
@@ -20,7 +20,7 @@ import {
  */
 export default function EventDetail(props) {
     useAlhambraStyles()
-    const { backLabel, backLink, registerNote, consent, msgMissing, msgOk, today: todayProp } = props
+    const { backLabel, backLink, registerNote, consent, msgMissing, msgOk, policyLink, today: todayProp } = props
     const ev = useMemo(() => withDates(toCmsEvent(props)), [props])
     const [toastNode, showToast] = useToast()
 
@@ -94,7 +94,7 @@ export default function EventDetail(props) {
                                 </div>
                             </>
                         ) : (
-                            <RegisterForm id="ev-page" note={registerNote} consent={consent} msgMissing={msgMissing} msgOk={msgOk} onBack={closeForm} />
+                            <RegisterForm id="ev-page" note={registerNote} consent={consent} msgMissing={msgMissing} msgOk={msgOk} policyLink={policyLink} onBack={closeForm} />
                         )}
                     </div>
                 </div>
@@ -111,6 +111,7 @@ EventDetail.defaultProps = {
     backLabel: "Todos los eventos",
     backLink: "/eventos",
     ...REGISTER_TEXTS,
+    policyLink: POLICY_PATH,
     today: "",
 }
 
@@ -122,5 +123,6 @@ addPropertyControls(EventDetail, {
     consent: { type: ControlType.String, title: "Registro · autorización", displayTextArea: true, defaultValue: REGISTER_TEXTS.consent },
     msgMissing: { type: ControlType.String, title: "Mensaje · faltan datos", defaultValue: REGISTER_TEXTS.msgMissing },
     msgOk: { type: ControlType.String, title: "Mensaje · completo", defaultValue: REGISTER_TEXTS.msgOk },
+    policyLink: { type: ControlType.Link, title: "Política de datos", defaultValue: POLICY_PATH },
     today: { type: ControlType.String, title: "Simular fecha (AAAA-MM-DD)", defaultValue: "" },
 })

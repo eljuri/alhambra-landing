@@ -4,6 +4,8 @@
 // Este archivo no es un componente.
 import { useRef, useState } from "react"
 import { parseDate } from "./Behaviors.tsx"
+import { POLICY_PATH } from "./Theme.tsx"
+export { POLICY_PATH }
 import { Btn } from "./Button.tsx"
 
 export const DAY = 86400000
@@ -157,7 +159,7 @@ export const REGISTER_TEXTS = {
     msgOk: "Datos completos. El registro en línea aún no está activo.",
 }
 
-export function RegisterForm({ note, consent, msgMissing, msgOk, onBack, backLabel = "Volver al detalle", id = "ev" }) {
+export function RegisterForm({ note, consent, msgMissing, msgOk, onBack, backLabel = "Volver al detalle", id = "ev", policyLink = POLICY_PATH }) {
     const form = useRef<HTMLFormElement>(null)
     const [invalid, setInvalid] = useState<Record<string, boolean>>({})
     const [notice, setNotice] = useState({ text: "", ok: false })
@@ -214,7 +216,7 @@ export function RegisterForm({ note, consent, msgMissing, msgOk, onBack, backLab
             </div>
             <label className={`venue-consent${invalid.consentimiento ? " is-invalid" : ""}`}>
                 <input type="checkbox" name="consentimiento" required aria-invalid={invalid.consentimiento ? "true" : undefined} />
-                <span>{consent}</span>
+                <span>{consent}{" "}<a className="policy-link" href={policyLink} target="_blank" rel="noopener noreferrer">Ver la Política de datos personales</a></span>
             </label>
             <p className={`ev-form__status${notice.ok ? " is-ok" : ""}`} role="status" aria-live="polite">{notice.text}</p>
             <div className="ev-actions">

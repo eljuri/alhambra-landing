@@ -1,7 +1,7 @@
 // Alhambra Shopping — footer
 import { Fragment, useRef } from "react"
 import { addPropertyControls, ControlType } from "framer"
-import { useAlhambraStyles, IMG, src, ROOT_CLASS } from "./Theme.tsx"
+import { useAlhambraStyles, IMG, src, ROOT_CLASS, POLICY_PATH } from "./Theme.tsx"
 
 const NOSOTROS = [
     { label: "Ubicación", link: "/ubicacion" },
@@ -126,7 +126,10 @@ export default function Footer(props) {
                     <p className="footer__legal">{p.legal}</p>
 
                     <div className="footer__row footer__row--bottom">
-                        <p>{p.copyright}</p>
+                        <p>
+                            {p.copyright}
+                            {p.policyLink ? <> · <a className="footer__policy" href={p.policyLink}>{p.policyLabel}</a></> : null}
+                        </p>
                         <p>{p.company}</p>
                     </div>
                 </div>
@@ -151,6 +154,8 @@ Footer.defaultProps = {
     legal: "Alhambra Shopping, Alhambra, Costa Plaza, las marcas, colores y signos distintivos, logotipos y colores son marcas registradas de Inmobiliaria Cobilhambra S.A. Los demás son de propiedad y derecho de sus respectivos propietarios. La información en este sitio es informativa e ilustrativa y sujeta a cambios.",
     copyright: "© 2026 Alhambra Shopping. Todos los derechos reservados.",
     company: "Inmobiliaria Cobilhambra S.A.",
+    policyLabel: "Política de Protección de Datos Personales",
+    policyLink: POLICY_PATH,
 }
 
 const linkList = (title: string, def) => ({
@@ -189,4 +194,6 @@ addPropertyControls(Footer, {
     legal: { type: ControlType.String, title: "Texto legal", displayTextArea: true, defaultValue: d.legal },
     copyright: { type: ControlType.String, title: "Copyright", defaultValue: d.copyright },
     company: { type: ControlType.String, title: "Empresa", defaultValue: d.company },
+    policyLabel: { type: ControlType.String, title: "Política · texto", defaultValue: d.policyLabel },
+    policyLink: { type: ControlType.Link, title: "Política · enlace", defaultValue: d.policyLink },
 })

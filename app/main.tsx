@@ -23,6 +23,7 @@ import VenueSpaces from "../framer/VenueSpaces.tsx"
 import VenueGallery from "../framer/VenueGallery.tsx"
 import VenueFaq from "../framer/VenueFaq.tsx"
 import VenueBooking from "../framer/VenueBooking.tsx"
+import Policy from "../framer/Policy.tsx"
 
 const PAGES = {
     "/": {
@@ -82,6 +83,11 @@ const PAGES = {
                 <VenueBooking />
             </>
         ),
+    },
+    "/politica-de-datos": {
+        title: "Política de Protección de Datos Personales · Alhambra Shopping",
+        intro: false,
+        body: <Policy />,
     },
 }
 

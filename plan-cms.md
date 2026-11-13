@@ -135,6 +135,14 @@ SEO de la página CMS: Title `{{Título}} · Alhambra Shopping`, Description `{{
 
 ---
 
+## Política de datos personales ✅ hecho
+
+`/politica-de-datos`: Nav + `Policy` + Footer. El texto está en `framer/PolicyText.tsx`, transcrito del PDF de Legal (PD-PPDP-04-2025). Las tablas de la sección 11 se generaron desde el PDF, agrupadas por base de legitimación. El PDF original se descarga desde `cdn/politica-datos-personales.pdf` (jsDelivr, commit fijo). Enlazada desde el Footer, las autorizaciones del registro de eventos y de reservas del Salón, y el formulario de suscripción (`POLICY_PATH` en `Theme.tsx`).
+
+Pendiente de Legal: fechas que no coinciden, teléfono marcado como «Cuenca», erratas («Sambrondón», «Cunplimiento», «comeptente», «de de»), el formulario digital que menciona la sección 7 y el contacto del Delegado (sección 18).
+
+---
+
 ## Lo que no va al CMS
 
 Cambia poco y ya se edita desde el panel derecho de cada componente: FAQ del Salón, espacios y planos, galería, textos de los heros, menú, footer, cinta de categorías, formulario de reservas y suscripción.

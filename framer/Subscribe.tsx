@@ -2,7 +2,7 @@
 // No hay backend todavía: el mensaje final no afirma que los datos se enviaron.
 import { useEffect, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
-import { useAlhambraStyles, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
+import { useAlhambraStyles, Split, ROOT_CLASS, useReveal, POLICY_PATH } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
 import { Btn } from "./Button.tsx"
 
@@ -22,7 +22,7 @@ const FIELDS = [
  */
 export default function Subscribe(props) {
     useAlhambraStyles()
-    const { title, sub, lead, submitLabel, msgMissing, msgOk } = props
+    const { title, sub, lead, submitLabel, msgMissing, msgOk, policyText, policyLabel, policyLink } = props
     const root = useRef<HTMLDivElement>(null)
     const form = useRef<HTMLFormElement>(null)
     const [invalid, setInvalid] = useState<Record<string, boolean>>({})
@@ -127,6 +127,10 @@ export default function Subscribe(props) {
                             {field(FIELDS[3])}
                             {field(FIELDS[4])}
                         </div>
+                        <p className="form__policy field--wide">
+                            {policyText}{" "}
+                            <a className="policy-link" href={policyLink} target="_blank" rel="noopener noreferrer">{policyLabel}</a>.
+                        </p>
                         <div className="form__foot field--wide">
                             <Btn variant="dark" type="submit" block>{submitLabel}</Btn>
                         </div>
@@ -145,6 +149,9 @@ Subscribe.defaultProps = {
     sub: "Eventos y promociones, directo a tu correo.",
     lead: "Déjanos tus datos y sé de los primeros en enterarte de nuestros próximos eventos, novedades y experiencias especiales.",
     submitLabel: "Enviar",
+    policyText: "Tratamos tus datos según nuestra",
+    policyLabel: "Política de Protección de Datos Personales",
+    policyLink: POLICY_PATH,
     msgMissing: "Faltan campos por llenar.",
     msgOk: "Datos completos. La suscripción en línea aún no está activa.",
 }
@@ -156,4 +163,7 @@ addPropertyControls(Subscribe, {
     submitLabel: { type: ControlType.String, title: "Botón", defaultValue: "Enviar" },
     msgMissing: { type: ControlType.String, title: "Mensaje · faltan datos", defaultValue: Subscribe.defaultProps.msgMissing },
     msgOk: { type: ControlType.String, title: "Mensaje · completo", defaultValue: Subscribe.defaultProps.msgOk },
+    policyText: { type: ControlType.String, title: "Política · texto", defaultValue: Subscribe.defaultProps.policyText },
+    policyLabel: { type: ControlType.String, title: "Política · enlace", defaultValue: Subscribe.defaultProps.policyLabel },
+    policyLink: { type: ControlType.Link, title: "Política de datos", defaultValue: POLICY_PATH },
 })

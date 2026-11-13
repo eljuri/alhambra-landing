@@ -11,7 +11,7 @@ import { isCanvas, parseDate } from "./Behaviors.tsx"
 import { Btn } from "./Button.tsx"
 import {
     DAY, pad, sized, fmt, monthTitle, statusOf, withDates, eventPath, downloadIcs, useToast, shareEvent,
-    Sponsors, EventMeta, RegisterForm, REGISTER_TEXTS, paragraphs,
+    Sponsors, EventMeta, RegisterForm, REGISTER_TEXTS, POLICY_PATH, paragraphs,
 } from "./EventShared.tsx"
 import { Toggle } from "./Toggle.tsx"
 import { useCmsEvents } from "./EventsCms.tsx"
@@ -81,7 +81,7 @@ function Countdown({ to, now }: { to: Date; now: Date }) {
  */
 export default function EventsAgenda(props) {
     useAlhambraStyles()
-    const { title, lead, emptyTitle, emptyText, emptyCta, emptyLink, registerNote, consent, msgMissing, msgOk, today: todayProp } = props
+    const { title, lead, emptyTitle, emptyText, emptyCta, emptyLink, registerNote, consent, msgMissing, msgOk, policyLink, today: todayProp } = props
     const events = useCmsEvents(props.events || []) as any[]
     const root = useRef<HTMLDivElement>(null)
     const dialog = useRef<HTMLDialogElement>(null)
@@ -342,7 +342,7 @@ export default function EventsAgenda(props) {
                                     </div>
                                 </>
                             ) : (
-                                <RegisterForm key={active.slug} note={registerNote} consent={consent} msgMissing={msgMissing} msgOk={msgOk} onBack={() => setView("detalle")} />
+                                <RegisterForm key={active.slug} note={registerNote} consent={consent} msgMissing={msgMissing} msgOk={msgOk} policyLink={policyLink} onBack={() => setView("detalle")} />
                             )}
                         </div>
                     </div>
@@ -362,6 +362,7 @@ EventsAgenda.defaultProps = {
     emptyCta: "Quiero enterarme",
     emptyLink: "/#suscripcion",
     ...REGISTER_TEXTS,
+    policyLink: POLICY_PATH,
     today: "",
     events: EVENTS,
 }
@@ -377,6 +378,7 @@ addPropertyControls(EventsAgenda, {
     consent: { type: ControlType.String, title: "Registro · autorización", displayTextArea: true, defaultValue: EventsAgenda.defaultProps.consent },
     msgMissing: { type: ControlType.String, title: "Mensaje · faltan datos", defaultValue: EventsAgenda.defaultProps.msgMissing },
     msgOk: { type: ControlType.String, title: "Mensaje · completo", defaultValue: EventsAgenda.defaultProps.msgOk },
+    policyLink: { type: ControlType.Link, title: "Política de datos", defaultValue: POLICY_PATH },
     today: { type: ControlType.String, title: "Simular fecha (AAAA-MM-DD)", defaultValue: "" },
     events: {
         type: ControlType.Array,

@@ -2,7 +2,7 @@
 // No hay backend todavía: el mensaje final no afirma que la solicitud se envió.
 import { useEffect, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
-import { useAlhambraStyles, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
+import { useAlhambraStyles, Split, ROOT_CLASS, useReveal, POLICY_PATH } from "./Theme.tsx"
 import { isCanvas } from "./Behaviors.tsx"
 import { Btn } from "./Button.tsx"
 import { Toggle } from "./Toggle.tsx"
@@ -28,7 +28,7 @@ const today = () => {
  */
 export default function VenueBooking(props) {
     useAlhambraStyles()
-    const { eyebrow, title, lead, address, mapLink, notes, consent, submitLabel, msgMissing, msgOk } = props
+    const { eyebrow, title, lead, address, mapLink, notes, consent, policyLink, submitLabel, msgMissing, msgOk } = props
     const root = useRef<HTMLDivElement>(null)
     const form = useRef<HTMLFormElement>(null)
     const [kind, setKind] = useState<"personal" | "corporativo">("personal")
@@ -190,7 +190,7 @@ export default function VenueBooking(props) {
 
                         <label className={`venue-consent field--wide${invalid.consentimiento ? " is-invalid" : ""}`}>
                             <input type="checkbox" name="consentimiento" required aria-invalid={bad("consentimiento")} />
-                            <span>{consent}</span>
+                            <span>{consent}{" "}<a className="policy-link" href={policyLink} target="_blank" rel="noopener noreferrer">Ver la Política de datos personales</a></span>
                         </label>
 
                         <div className="form__foot field--wide">
@@ -220,6 +220,7 @@ VenueBooking.defaultProps = {
     mapLink: "https://maps.app.goo.gl/HNeZX375HAzi59UD6",
     notes: NOTES,
     consent: "Autorizo al Fideicomiso Alhambra – Cobilhambra S.A. y sus filiales a contactarme para efectos de atención, servicio y promoción. Mi información es confidencial y se usará solo para esos fines.",
+    policyLink: POLICY_PATH,
     submitLabel: "Enviar solicitud",
     msgMissing: "Faltan campos por llenar.",
     msgOk: "Datos completos. Las reservas en línea aún no están activas.",
@@ -244,6 +245,7 @@ addPropertyControls(VenueBooking, {
         },
     },
     consent: { type: ControlType.String, title: "Autorización", displayTextArea: true, defaultValue: VenueBooking.defaultProps.consent },
+    policyLink: { type: ControlType.Link, title: "Política de datos", defaultValue: POLICY_PATH },
     submitLabel: { type: ControlType.String, title: "Botón", defaultValue: VenueBooking.defaultProps.submitLabel },
     msgMissing: { type: ControlType.String, title: "Mensaje · faltan datos", defaultValue: VenueBooking.defaultProps.msgMissing },
     msgOk: { type: ControlType.String, title: "Mensaje · completo", defaultValue: VenueBooking.defaultProps.msgOk },
