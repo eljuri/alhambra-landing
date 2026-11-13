@@ -111,7 +111,7 @@ Ojo: los PNG de logos vienen centrados en un lienzo transparente (p. ej. 240×13
 
 ---
 
-## Fase 3 — Página de detalle de evento ✅ hecho (falta SEO)
+## Fase 3 — Página de detalle de evento ✅ hecho
 
 Hecho:
 - `framer/EventShared.tsx`: piezas comunes de la agenda y de la página (fechas, .ics, compartir, auspiciantes, datos, formulario de registro). `EventsAgenda.tsx` ya las usa.
@@ -123,7 +123,7 @@ Hecho:
 
 **Verificado en staging** (13/11/2026): las 5 páginas muestran los datos del CMS (título, fecha, lugar, descripción, auspiciantes, imagen extra), sin errores de hidratación; en eventos pasados solo queda «Compartir». Framer genera el HTML de algunas páginas CMS un rato después de publicar (mientras tanto el contenido se arma en el navegador).
 
-Falta: el título de la pestaña sigue en «My Framer Site»; poner título y descripción SEO de la página CMS (Título + « · Alhambra Shopping», Resumen).
+SEO de la página CMS: Title `{{Título}} · Alhambra Shopping`, Description `{{Resumen}}`, Social preview = campo Imagen. Verificado en las 5 páginas (tras publicar, cada página tarda un momento en dejar de servir la versión anterior).
 
 
 `/eventos/:slug` existe con el diseño automático de Framer.
