@@ -5,7 +5,7 @@
 //
 // Uso: node scripts/build-styles.mjs   (también lo ejecuta Vite al arrancar
 // y cada vez que cambia styles.css)
-import { readFileSync, writeFileSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
 
@@ -75,6 +75,11 @@ export function buildStyles() {
 
     const out = `// GENERADO por scripts/build-styles.mjs desde styles.css. No editar a mano.\nexport const CSS = \`${css.replaceAll("\\", "\\\\")}\`\n`
     writeFileSync(join(ROOT, "framer/Styles.tsx"), out)
+    // La misma hoja como archivo, para el <head> del sitio publicado (Site
+    // Settings → Custom Code, vía jsDelivr): así el HTML del servidor ya llega
+    // con estilos y no se ve la página cruda mientras carga el JavaScript.
+    mkdirSync(join(ROOT, "cdn"), { recursive: true })
+    writeFileSync(join(ROOT, "cdn/alhambra.css"), `/* GENERADO por scripts/build-styles.mjs desde styles.css. No editar a mano. */\n${css}`)
     return out.length
 }
 
