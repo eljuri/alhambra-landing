@@ -53,7 +53,7 @@ const local = readdirSync(join(ROOT, "framer"))
 try {
     const remote = new Map((await call("codeFiles_list")).codeFiles.map((f) => [f.name, f]))
     // Primero los módulos compartidos, para que los demás compilen contra la versión nueva
-    const order = ["Styles.tsx", "Theme.tsx", "Behaviors.tsx", "Button.tsx", "Toggle.tsx", "CmsStore.tsx", "EventsCms.tsx", "DirectoryCms.tsx", "Directory.tsx"]
+    const order = ["Styles.tsx", "Theme.tsx", "Behaviors.tsx", "Button.tsx", "Toggle.tsx", "CmsStore.tsx", "EventsCms.tsx", "EventShared.tsx", "DirectoryCms.tsx", "Directory.tsx"]
     local.sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99))
 
     for (const file of local) {

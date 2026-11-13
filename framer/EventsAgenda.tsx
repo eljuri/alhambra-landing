@@ -1,17 +1,22 @@
 // Alhambra Shopping — página /eventos: próximo evento destacado con cuenta
 // regresiva, agenda por meses (próximos / pasados / todos) y panel de detalle
 // con registro, «Agregar al calendario» (.ics) y compartir.
-// Cada evento tiene enlace propio: /eventos?evento=<slug> abre su panel.
+// Cada evento tiene página propia (/eventos/<slug>); /eventos?evento=<slug>
+// sigue abriendo su panel para los enlaces ya compartidos.
 // No hay backend: el registro valida pero no afirma que se envió.
 import { useEffect, useMemo, useRef, useState } from "react"
 import { addPropertyControls, ControlType } from "framer"
 import { useAlhambraStyles, IMG, Split, ROOT_CLASS, useReveal } from "./Theme.tsx"
 import { isCanvas, parseDate } from "./Behaviors.tsx"
 import { Btn } from "./Button.tsx"
+import {
+    DAY, pad, sized, fmt, monthTitle, statusOf, withDates, eventPath, downloadIcs, useToast, shareEvent,
+    Sponsors, EventMeta, RegisterForm, REGISTER_TEXTS, paragraphs,
+} from "./EventShared.tsx"
 import { Toggle } from "./Toggle.tsx"
 import { useCmsEvents } from "./EventsCms.tsx"
 
-const EVENTS = [
+export const EVENTS = [
     {
         slug: "feria-viva", date: "2026-07-30T14:00", time: "14h00", tag: "Salud", title: "Feria Viva!", place: "Alhambra Shopping",
         summary: "Ven y disfruta de un evento dedicado a la salud.",
@@ -51,86 +56,6 @@ const EVENTS = [
     },
 ]
 
-const DAY = 86400000
-const emailShape = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
-const pad = (n: number) => String(n).padStart(2, "0")
-const sized = (url: string, w: number) => (!url || url.includes("?") ? url : `${url}?scale-down-to=${w}`)
-const hasTime = (value: string) => String(value).includes("T")
-
-const fmt = (d: Date, opts: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("es-EC", opts).format(d)
-const longDate = (d: Date) => {
-    const s = fmt(d, { weekday: "long", day: "numeric", month: "long", year: "numeric" })
-    return s.charAt(0).toUpperCase() + s.slice(1)
-}
-const monthTitle = (d: Date) => {
-    const s = fmt(d, { month: "long", year: "numeric" })
-    return s.charAt(0).toUpperCase() + s.slice(1)
-}
-
-const statusOf = (date: Date, today: Date) => {
-    const day = new Date(date)
-    day.setHours(0, 0, 0, 0)
-    const diff = Math.round((day.getTime() - today.getTime()) / DAY)
-    if (diff < 0) return "Finalizado"
-    if (diff === 0) return "Hoy"
-    if (diff === 1) return "Mañana"
-    return `En ${diff} días`
-}
-
-// Archivo .ics para «Agregar al calendario» (sin servicios externos)
-const icsStamp = (d: Date) => `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`
-const icsDay = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`
-const icsText = (s: string) => String(s || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1")
-// Las horas de la agenda son de Ecuador (UTC−5, sin horario de verano)
-const ecuadorTime = (value: string) => {
-    const [d, t = "00:00"] = String(value).split("T")
-    const [y, m, day] = d.split("-").map(Number)
-    const [h, min] = t.split(":").map(Number)
-    return new Date(Date.UTC(y, m - 1, day, h + 5, min || 0))
-}
-function downloadIcs(ev: any, url: string) {
-    const start: Date = ev.timed ? ecuadorTime(ev.date) : ev.when
-    const lines = [
-        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Alhambra Shopping//Eventos//ES", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
-        `UID:${ev.slug}-${icsDay(start)}@alhambrashopping.com`,
-        `DTSTAMP:${icsStamp(new Date())}`,
-    ]
-    if (ev.timed) {
-        lines.push(`DTSTART:${icsStamp(start)}`, `DTEND:${icsStamp(new Date(start.getTime() + 2 * 3600000))}`)
-    } else {
-        lines.push(`DTSTART;VALUE=DATE:${icsDay(start)}`, `DTEND;VALUE=DATE:${icsDay(new Date(start.getTime() + DAY))}`)
-    }
-    lines.push(
-        `SUMMARY:${icsText(ev.title)}`,
-        `DESCRIPTION:${icsText(`${ev.summary}\n${url}`)}`,
-        `LOCATION:${icsText(`${ev.place}, Vía a Samborondón y Celeste Blacio de Rendón`)}`,
-        `URL:${url}`,
-        "END:VEVENT", "END:VCALENDAR"
-    )
-    const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" })
-    const a = document.createElement("a")
-    a.href = URL.createObjectURL(blob)
-    a.download = `${ev.slug}.ics`
-    document.body.append(a)
-    a.click()
-    a.remove()
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-}
-
-const eventUrl = (slug: string) =>
-    typeof location === "undefined" ? "" : `${location.origin}${location.pathname}?evento=${encodeURIComponent(slug)}`
-
-function Sponsors({ list }: { list: string[] }) {
-    if (!list.length) return null
-    return (
-        <ul className="sponsors" aria-label="Con el apoyo de">
-            {list.map((url, i) => (
-                <li key={i}><img src={url} alt={`Patrocinio ${i + 1}`} loading="lazy" /></li>
-            ))}
-        </ul>
-    )
-}
-
 function Countdown({ to, now }: { to: Date; now: Date }) {
     let left = Math.max(0, to.getTime() - now.getTime())
     const days = Math.floor(left / DAY)
@@ -160,7 +85,6 @@ export default function EventsAgenda(props) {
     const events = useCmsEvents(props.events || []) as any[]
     const root = useRef<HTMLDivElement>(null)
     const dialog = useRef<HTMLDialogElement>(null)
-    const form = useRef<HTMLFormElement>(null)
     useReveal(root)
 
     // Reloj del visitante (se fija tras montar). ?hoy=AAAA-MM-DD o la
@@ -185,16 +109,13 @@ export default function EventsAgenda(props) {
     const all = useMemo(
         () =>
             (events).map((e) => {
-                const when = parseDate(e.date)
-                const past = now ? when < today : false
+                const ev = withDates(e)
+                const past = now ? ev.when < today : false
                 return {
-                    ...e,
-                    when,
-                    timed: hasTime(e.date),
+                    ...ev,
                     past,
-                    status: now ? statusOf(when, today) : "",
-                    soon: now ? !past && when.getTime() - today.getTime() < 8 * DAY : false,
-                    sponsorList: String(e.sponsors || "").split(",").map((s) => s.trim()).filter(Boolean),
+                    status: now ? statusOf(ev.when, today) : "",
+                    soon: now ? !past && ev.when.getTime() - today.getTime() < 8 * DAY : false,
                 }
             }),
         [events, dayKey]
@@ -228,20 +149,8 @@ export default function EventsAgenda(props) {
     // Panel de detalle
     const [openSlug, setOpenSlug] = useState("")
     const [view, setView] = useState<"detalle" | "registro">("detalle")
-    const [invalid, setInvalid] = useState<Record<string, boolean>>({})
-    const [notice, setNotice] = useState({ text: "", ok: false })
-    const [toast, setToast] = useState({ text: "", visible: false })
-    const toastTimer = useRef<any>(0)
+    const [toastNode, showToast] = useToast()
     const active = all.find((e) => e.slug === openSlug)
-
-    const showToast = (text: string) => {
-        clearTimeout(toastTimer.current)
-        setToast({ text, visible: false })
-        requestAnimationFrame(() => {
-            setToast({ text, visible: true })
-            toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 3200)
-        })
-    }
 
     const setParam = (slug: string) => {
         const url = new URL(location.href)
@@ -253,8 +162,6 @@ export default function EventsAgenda(props) {
     const openEvent = (slug: string, mode: "detalle" | "registro" = "detalle") => {
         setOpenSlug(slug)
         setView(mode)
-        setInvalid({})
-        setNotice({ text: "", ok: false })
         setParam(slug)
         const d = dialog.current
         if (d && !d.open) {
@@ -282,72 +189,8 @@ export default function EventsAgenda(props) {
         }
     }, [events])
 
-    const share = async (ev: any) => {
-        const url = eventUrl(ev.slug)
-        if ((navigator as any).share) {
-            try {
-                await (navigator as any).share({ title: ev.title, text: ev.summary, url })
-            } catch {}
-            return
-        }
-        try {
-            await navigator.clipboard.writeText(url)
-            showToast("Enlace copiado")
-        } catch {
-            showToast(url)
-        }
-    }
-
-    // Registro
-    const fieldsOf = () => Array.from(form.current?.querySelectorAll<HTMLInputElement>("input") || [])
-    const isValid = (f: HTMLInputElement) => {
-        if (f.type === "checkbox") return !f.required || f.checked
-        const v = f.value.trim()
-        if (f.required && v === "") return false
-        if (f.type === "email" && v !== "" && !emailShape.test(v)) return false
-        return f.checkValidity()
-    }
-    const onSubmit = (e: React.FormEvent) => {
-        e.preventDefault()
-        const next: Record<string, boolean> = {}
-        let first: HTMLInputElement | null = null
-        fieldsOf().forEach((f) => {
-            const ok = isValid(f)
-            next[f.name] = !ok
-            if (!ok && !first) first = f
-        })
-        setInvalid(next)
-        if (first) {
-            ;(first as HTMLInputElement).focus()
-            setNotice({ text: msgMissing, ok: false })
-            return
-        }
-        setNotice({ text: msgOk, ok: true })
-    }
-    const recheck = (e: React.SyntheticEvent<HTMLFormElement>, onlyMarked: boolean) => {
-        const f = e.target as HTMLInputElement
-        if (!f.name || (onlyMarked && !invalid[f.name])) return
-        if (!onlyMarked && f.type !== "checkbox" && f.value.trim() === "" && !invalid[f.name]) return
-        setInvalid((s) => ({ ...s, [f.name]: !isValid(f) }))
-    }
-    const field = (id: string, label: string, icon: string, opts: any = {}) => (
-        <div className={`field${opts.wide ? " field--wide" : ""}${invalid[id] ? " is-invalid" : ""}`}>
-            <label htmlFor={`ev-${id}`}>{label}</label>
-            <div className="field__control">
-                <i className={`ph ph-${icon}`} aria-hidden="true"></i>
-                <input id={`ev-${id}`} name={id} type={opts.type || "text"} required autoComplete={opts.auto} maxLength={opts.max || 80} pattern={opts.pattern} inputMode={opts.mode} aria-invalid={invalid[id] ? "true" : undefined} />
-            </div>
-        </div>
-    )
-
-    const meta = (ev: any) => (
-        <ul className="ev-meta">
-            <li><i className="ph ph-calendar-blank" aria-hidden="true"></i>{longDate(ev.when)}</li>
-            {ev.time ? <li><i className="ph ph-clock" aria-hidden="true"></i>{ev.time}</li> : null}
-            {ev.place ? <li><i className="ph ph-map-pin" aria-hidden="true"></i>{ev.place}</li> : null}
-            {ev.free ? <li><i className="ph ph-ticket" aria-hidden="true"></i>Entrada libre</li> : null}
-        </ul>
-    )
+    const share = (ev: any) => shareEvent(ev, showToast)
+    const meta = (ev: any) => <EventMeta ev={ev} />
 
     const reveal = isCanvas() ? "" : " reveal"
     const counts = { proximos: upcoming.length, pasados: past.length, todos: all.length }
@@ -380,7 +223,7 @@ export default function EventsAgenda(props) {
                                             <Btn variant="dark" onClick={() => openEvent(next.slug, "registro")}>Regístrate</Btn>
                                         ) : null}
                                         <Btn variant="line" icon="plus" onClick={() => openEvent(next.slug)}>Ver detalles</Btn>
-                                        <button className="ev-icon-btn" type="button" onClick={() => downloadIcs(next, eventUrl(next.slug))} aria-label="Agregar al calendario" title="Agregar al calendario">
+                                        <button className="ev-icon-btn" type="button" onClick={() => downloadIcs(next)} aria-label="Agregar al calendario" title="Agregar al calendario">
                                             <i className="ph ph-calendar-plus" aria-hidden="true"></i>
                                         </button>
                                     </div>
@@ -476,7 +319,7 @@ export default function EventsAgenda(props) {
                             {view === "detalle" ? (
                                 <>
                                     <div className="ev-panel__text">
-                                        {String(active.body || active.summary).split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}
+                                        {paragraphs(active.body || active.summary).map((p, i) => <p key={i}>{p}</p>)}
                                     </div>
                                     {active.extraUrl ? <img className="ev-panel__extra" src={sized(active.extraUrl, 1200)} alt="" loading="lazy" /> : null}
                                     {active.sponsorList.length ? (
@@ -487,44 +330,26 @@ export default function EventsAgenda(props) {
                                     ) : null}
                                     <div className="ev-actions">
                                         {active.register && !active.past ? (
-                                            <Btn variant="dark" onClick={() => { setView("registro"); setNotice({ text: "", ok: false }) }}>Regístrate</Btn>
+                                            <Btn variant="dark" onClick={() => setView("registro")}>Regístrate</Btn>
                                         ) : null}
                                         {!active.past ? (
-                                            <Btn variant="line" icon="calendar-plus" onClick={() => downloadIcs(active, eventUrl(active.slug))}>Agregar al calendario</Btn>
+                                            <Btn variant="line" icon="calendar-plus" onClick={() => downloadIcs(active)}>Agregar al calendario</Btn>
                                         ) : null}
                                         <Btn variant="line" icon="share-network" onClick={() => share(active)}>Compartir</Btn>
+                                        <a className="ev-back" href={eventPath(active.slug)}>
+                                            Ver página del evento <i className="ph ph-arrow-up-right" aria-hidden="true"></i>
+                                        </a>
                                     </div>
                                 </>
                             ) : (
-                                <form className="ev-form" ref={form} noValidate onSubmit={onSubmit} onBlur={(e) => recheck(e, false)} onInput={(e) => recheck(e, true)} onChange={(e) => recheck(e, true)}>
-                                    <p className="ev-form__note">{registerNote}</p>
-                                    <div className="ev-form__grid">
-                                        {field("nombres", "Nombres", "user", { auto: "given-name" })}
-                                        {field("apellidos", "Apellidos", "user", { auto: "family-name" })}
-                                        {field("email", "Email", "envelope-simple", { type: "email", auto: "email", max: 120, wide: true })}
-                                        {field("telefono", "Teléfono", "phone", { type: "tel", auto: "tel", max: 20, mode: "tel", pattern: "[0-9+\\s\\(\\)\\-]{7,20}", wide: true })}
-                                    </div>
-                                    <label className={`venue-consent${invalid.consentimiento ? " is-invalid" : ""}`}>
-                                        <input type="checkbox" name="consentimiento" required aria-invalid={invalid.consentimiento ? "true" : undefined} />
-                                        <span>{consent}</span>
-                                    </label>
-                                    <p className={`ev-form__status${notice.ok ? " is-ok" : ""}`} role="status" aria-live="polite">{notice.text}</p>
-                                    <div className="ev-actions">
-                                        <Btn variant="dark" type="submit" block>Enviar registro</Btn>
-                                        <button className="ev-back" type="button" onClick={() => setView("detalle")}>
-                                            <i className="ph ph-arrow-left" aria-hidden="true"></i> Volver al detalle
-                                        </button>
-                                    </div>
-                                </form>
+                                <RegisterForm key={active.slug} note={registerNote} consent={consent} msgMissing={msgMissing} msgOk={msgOk} onBack={() => setView("detalle")} />
                             )}
                         </div>
                     </div>
                 ) : null}
             </dialog>
 
-            <div className={`toast${toast.visible ? " is-visible" : ""}`} role="status" aria-live="polite" hidden={!toast.text}>
-                {toast.text}
-            </div>
+            {toastNode}
         </div>
     )
 }
@@ -536,10 +361,7 @@ EventsAgenda.defaultProps = {
     emptyText: "Por ahora no hay eventos programados. Suscríbete y te avisamos apenas publiquemos el siguiente.",
     emptyCta: "Quiero enterarme",
     emptyLink: "/#suscripcion",
-    registerNote: "Cada asistente debe llenar su propio registro.",
-    consent: "Autorizo a Alhambra Shopping – Cobilhambra S.A. a contactarme sobre este evento. Mi información es confidencial.",
-    msgMissing: "Faltan campos por llenar.",
-    msgOk: "Datos completos. El registro en línea aún no está activo.",
+    ...REGISTER_TEXTS,
     today: "",
     events: EVENTS,
 }

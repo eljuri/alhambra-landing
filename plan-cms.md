@@ -111,7 +111,20 @@ Ojo: los PNG de logos vienen centrados en un lienzo transparente (p. ej. 240×13
 
 ---
 
-## Fase 3 — Página de detalle de evento
+## Fase 3 — Página de detalle de evento ✅ hecho (falta SEO)
+
+Hecho:
+- `framer/EventShared.tsx`: piezas comunes de la agenda y de la página (fechas, .ics, compartir, auspiciantes, datos, formulario de registro). `EventsAgenda.tsx` ya las usa.
+- `framer/EventDetail.tsx`: franja oscura (volver, etiqueta, estado, título, datos) y debajo imagen fija + descripción, imagen extra, auspiciantes y acciones. Lee los campos con `toCmsEvent` (de `EventsCms.tsx`), igual que el puente. `/eventos/<slug>#registro` abre el formulario. Evento pasado: sin registro ni calendario.
+- Las tarjetas del inicio enlazan a `/eventos/<slug>` (con `#registro` si tiene registro). «Agregar al calendario» y «Compartir» usan ya ese enlace.
+- La agenda **mantiene su panel** (vista rápida) y suma «Ver página del evento»; `?evento=<slug>` sigue abriendo el panel, así que los enlaces ya compartidos no se rompen.
+- En Framer, `/eventos/:slug` tiene Nav + EventDetail + Footer (se quitó el diseño automático).
+- En local: `/eventos/<slug>` usa los eventos de ejemplo.
+
+**Verificado en staging** (13/11/2026): las 5 páginas muestran los datos del CMS (título, fecha, lugar, descripción, auspiciantes, imagen extra), sin errores de hidratación; en eventos pasados solo queda «Compartir». Framer genera el HTML de algunas páginas CMS un rato después de publicar (mientras tanto el contenido se arma en el navegador).
+
+Falta: el título de la pestaña sigue en «My Framer Site»; poner título y descripción SEO de la página CMS (Título + « · Alhambra Shopping», Resumen).
+
 
 `/eventos/:slug` existe con el diseño automático de Framer.
 

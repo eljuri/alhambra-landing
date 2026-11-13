@@ -2671,6 +2671,63 @@ button.chip[aria-pressed="true"] { background: var(--ink); border-color: var(--i
   .ev-form__grid { grid-template-columns: 1fr; }
 }
 
+/* Página de cada evento (/eventos/<slug>): franja oscura bajo el nav con el
+   título y los datos; abajo la imagen (fija al hacer scroll) y el detalle. */
+.ev-page__head {
+  padding: calc(var(--nav-h) + clamp(32px, 5vw, 64px)) 0 clamp(36px, 5vw, 56px);
+  background: var(--graphite);
+  color: var(--cream);
+}
+.ev-page__back {
+  display: inline-flex;
+  text-decoration: none;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: clamp(24px, 4vw, 40px);
+  color: var(--sand);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: color 0.3s var(--ease);
+}
+.ev-page__back:hover { color: var(--cream); }
+.ev-page__head .ev-tag { color: var(--sand); }
+.ev-page__head .ev-status.is-past { border-color: var(--line-light); color: var(--sand); }
+.ev-page__title {
+  max-width: 18ch;
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 7vw, 5.5rem);
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+.ev-page__head .ev-meta { margin-top: 24px; color: rgba(245, 240, 233, 0.82); }
+.ev-page__head .ev-meta i { color: var(--sand); }
+
+.ev-page__main { padding-top: clamp(40px, 6vw, 80px); }
+.ev-page__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: start;
+}
+.ev-page__media {
+  position: sticky;
+  top: calc(var(--nav-h) + 24px);
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background: var(--cream);
+}
+.ev-page__media img { width: 100%; height: 100%; object-fit: cover; }
+.ev-page__body { scroll-margin-top: calc(var(--nav-h) + 24px); }
+.ev-page__text { display: grid; gap: 16px; color: var(--ink-soft); font-size: 1.125rem; }
+.ev-page__body .ev-form { margin-top: 0; padding-top: 0; border-top: 0; }
+@media (max-width: 860px) {
+  .ev-page__grid { grid-template-columns: 1fr; }
+  .ev-page__media { position: static; aspect-ratio: 3 / 2; }
+}
+
 /* --------------------------------------------------------------------------
    Movimiento reducido
    -------------------------------------------------------------------------- */

@@ -73,12 +73,9 @@ function plainText(v: any): string {
 
 // --- Componente que va dentro de la Collection List -------------------------
 
-/**
- * @framerSupportedLayoutWidth any
- * @framerSupportedLayoutHeight auto
- */
-export default function EventoCMS(props) {
-    const ev: CmsEvent = {
+/** Valores de Framer (fecha, imágenes, texto) → evento. También lo usa EventDetail. */
+export function toCmsEvent(props): CmsEvent {
+    return {
         slug: String(props.slug || "").trim(),
         title: props.title || "",
         date: wallTime(props.date),
@@ -94,6 +91,14 @@ export default function EventoCMS(props) {
         free: !!props.free,
         linkLabel: props.linkLabel || "",
     }
+}
+
+/**
+ * @framerSupportedLayoutWidth any
+ * @framerSupportedLayoutHeight auto
+ */
+export default function EventoCMS(props) {
+    const ev = toCmsEvent(props)
     // Se registra durante el render para que la agenda (que va después en la
     // página) ya tenga los datos en el prerender de Framer, sin parpadeo.
     registerCmsItem(store, ev)
@@ -108,7 +113,7 @@ export default function EventoCMS(props) {
 
 EventoCMS.displayName = "EventoCMS"
 
-addPropertyControls(EventoCMS, {
+export const EVENT_FIELD_CONTROLS = {
     slug: { type: ControlType.String, title: "Slug" },
     title: { type: ControlType.String, title: "Título" },
     date: { type: ControlType.Date, title: "Fecha" },
@@ -125,4 +130,6 @@ addPropertyControls(EventoCMS, {
     register: { type: ControlType.Boolean, title: "Tiene registro", defaultValue: false },
     free: { type: ControlType.Boolean, title: "Gratis", defaultValue: false },
     linkLabel: { type: ControlType.String, title: "Texto del botón" },
-})
+}
+
+addPropertyControls(EventoCMS, EVENT_FIELD_CONTROLS)

@@ -15,7 +15,8 @@ import RestaurantsHero from "../framer/RestaurantsHero.tsx"
 import Brands from "../framer/Brands.tsx"
 import Restaurants from "../framer/Restaurants.tsx"
 import EventsHero from "../framer/EventsHero.tsx"
-import EventsAgenda from "../framer/EventsAgenda.tsx"
+import EventsAgenda, { EVENTS } from "../framer/EventsAgenda.tsx"
+import EventDetail from "../framer/EventDetail.tsx"
 import VenueHero from "../framer/VenueHero.tsx"
 import VenueShift from "../framer/VenueShift.tsx"
 import VenueSpaces from "../framer/VenueSpaces.tsx"
@@ -84,7 +85,34 @@ const PAGES = {
     },
 }
 
-const page = PAGES[location.pathname.replace(/\/$/, "") || "/"] ?? PAGES["/"]
+// /eventos/<slug>: en Framer es la página CMS; aquí sale de los eventos de ejemplo,
+// con los mismos valores que entregaría el CMS (fecha de Ecuador escrita en UTC).
+function eventPage(path: string) {
+    const slug = decodeURIComponent(path.match(/^\/eventos\/([^/]+)$/)?.[1] || "")
+    const e = EVENTS.find((x) => x.slug === slug)
+    if (!e) return null
+    const [s1, s2, s3] = String(e.sponsors || "").split(",").map((u) => u.trim())
+    const date = e.date.includes("T") ? `${e.date}:00Z` : `${e.date}T00:00:00Z`
+    return {
+        title: `${e.title} · Alhambra Shopping`,
+        intro: false,
+        body: (
+            <EventDetail
+                {...EventDetail.defaultProps}
+                {...e}
+                date={date}
+                image={e.imageUrl}
+                extra={e.extraUrl}
+                sponsor1={s1}
+                sponsor2={s2}
+                sponsor3={s3}
+            />
+        ),
+    }
+}
+
+const path = location.pathname.replace(/\/$/, "") || "/"
+const page = PAGES[path] ?? eventPage(path) ?? PAGES["/"]
 document.title = page.title
 
 // Sin CMS en local: los puentes no esperan a la Collection List (ver CmsStore.tsx)
