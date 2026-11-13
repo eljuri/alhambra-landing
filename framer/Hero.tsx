@@ -1,7 +1,7 @@
 // Alhambra Shopping — hero con video, grano y entrada por palabras
 import { useEffect, useRef } from "react"
 import { addPropertyControls, ControlType } from "framer"
-import { useAlhambraStyles, REPO, Split, ROOT_CLASS, reduceMotion } from "./Theme.tsx"
+import { useAlhambraStyles, REPO, CDN, src, Split, ROOT_CLASS, reduceMotion } from "./Theme.tsx"
 import { hasFinePointer, isCanvas } from "./Behaviors.tsx"
 
 /**
@@ -10,7 +10,7 @@ import { hasFinePointer, isCanvas } from "./Behaviors.tsx"
  */
 export default function Hero(props) {
     useAlhambraStyles()
-    const { video, videoUrl, name, title, lead, cueText, cueLink } = props
+    const { video, videoUrl, poster, posterUrl, name, title, lead, cueText, cueLink } = props
     const hero = useRef<HTMLElement>(null)
     const film = useRef<HTMLVideoElement>(null)
 
@@ -55,7 +55,7 @@ export default function Hero(props) {
     return (
         <div className={ROOT_CLASS} style={{ width: "100%" }}>
             <section className="hero hero--film" aria-labelledby="hero-name" ref={hero}>
-                <video className="hero__video" ref={film} autoPlay muted loop playsInline preload="metadata" src={video || videoUrl} />
+                <video className="hero__video" ref={film} autoPlay muted loop playsInline preload="metadata" src={video || videoUrl} poster={src(poster, posterUrl) || undefined} />
                 <div className="hero__shade" aria-hidden="true"></div>
                 <div className="hero__grain" aria-hidden="true"></div>
                 <div className="hero__inner container">
@@ -76,6 +76,8 @@ export default function Hero(props) {
 
 Hero.defaultProps = {
     videoUrl: `${REPO}/video/hero2.mp4`,
+    // Primer cuadro del video: se ve mientras el video carga
+    posterUrl: `${CDN}/video/hero2-poster.jpg`,
     name: "Alhambra",
     title: "Vive lo extraordinario",
     lead: "Mucho más que compras: gastronomía, entretenimiento y experiencias únicas que hacen de cada visita un momento especial.",
@@ -86,6 +88,8 @@ Hero.defaultProps = {
 addPropertyControls(Hero, {
     video: { type: ControlType.File, title: "Video", allowedFileTypes: ["mp4", "webm", "mov"] },
     videoUrl: { type: ControlType.String, title: "Video (URL)", defaultValue: Hero.defaultProps.videoUrl },
+    poster: { type: ControlType.ResponsiveImage, title: "Portada", description: "Se ve mientras carga el video" },
+    posterUrl: { type: ControlType.String, title: "Portada (URL)", defaultValue: Hero.defaultProps.posterUrl },
     name: { type: ControlType.String, title: "Nombre", defaultValue: Hero.defaultProps.name },
     title: { type: ControlType.String, title: "Título", defaultValue: Hero.defaultProps.title },
     lead: { type: ControlType.String, title: "Texto", displayTextArea: true, defaultValue: Hero.defaultProps.lead },

@@ -8,6 +8,9 @@ import { CSS } from "./Styles.tsx"
 const PHOSPHOR = "https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css"
 export const IMG = (name: string) => `https://framerusercontent.com/images/${name}`
 export const REPO = "https://cdn.jsdelivr.net/gh/luis-gomez-91/alhambra@c267f72eb0d8d53817049aebb9715c3929ad74bb"
+// Archivos de este repo (eljuri/alhambra-landing) en un commit fijo: hoja de
+// estilos para el <head> (cdn/alhambra.css) y portada del video del hero
+export const CDN = "https://cdn.jsdelivr.net/gh/eljuri/alhambra-landing@0a5dbd2e7954bf5bd2d3e7255112e9cb077b27e6"
 
 const useIso = typeof window !== "undefined" ? useLayoutEffect : useEffect
 
